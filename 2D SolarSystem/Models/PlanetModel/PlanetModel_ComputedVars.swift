@@ -7,9 +7,8 @@
 
 import Foundation
 
+//MARK: COMPUTED VARIABLES
 extension PlanetModel {
-    
-    //MARK: COMPUTER VARIABLES
     
     var radius: CGFloat {
         CGFloat(id * 23)

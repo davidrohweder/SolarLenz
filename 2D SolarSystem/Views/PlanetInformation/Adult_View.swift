@@ -10,7 +10,7 @@ import SwiftUI
 struct Adult_View: View {
     @EnvironmentObject var manager: PlanetManager
     var body: some View {
-        VStack {
+        VStack (alignment: .trailing){
             Group {
                 Text("distanceFromSun \(manager.currentPlanet.distanceFromSun)")
                 Text("mass10_24Kg \(manager.currentPlanet.mass10_24Kg)")

@@ -12,9 +12,9 @@ import UIKit
 
 struct ViewController: UIViewRepresentable {
     @ObservedObject var manager: PlanetManager
-    private var adjusted_origin: CGFloat // adjusted origin with current planet
-    private let originZ = -4.0 // arbritarily looks nice at this z offset
+    private let originZ = -4.0 // offset of current planet
     @State var sceneView = ARSCNView()
+    static var curr_angle = 0.0
     
     init(_manager: PlanetManager) {
         manager = _manager
@@ -37,11 +37,30 @@ struct ViewController: UIViewRepresentable {
         let shrinkageScale = 0.0015 //* planet.scale // Make planets viewable and someone marginally scaled
         objectNode.scale = SCNVector3(shrinkageScale, shrinkageScale, shrinkageScale) // you would not believe how long this took me to figure out lol. The bounding box is 1000,1000,1000 but the visible scale is very very small, so the objects were so large they never appeared.
         
-        // give inital starting coordinates (kind of based on 2d starting coords)
-        let ar_offset =
-        let zedOff: CGFloat = ar_offset + adjusted_origin
+        // give inital starting coordinates
+        let planet_offset = planet_start(planet: planet) + originZ
+        var zedOff: CGFloat = planet_offset
         let yOff: CGFloat = 0.0
-        let xOff: CGFloat = 0.0
+        var xOff: CGFloat = 0.0
+        
+        if planet.id >= manager.currentPlanet.id {
+            let offset_distance = abs(current_adjusted)
+            zedOff += offset_distance
+        }
+        
+        if planet.id < manager.currentPlanet.id {
+            zedOff += abs(zedOff) + abs(current_adjusted)
+        }
+        
+        let radius = zedOff // pre-random-coordinate radius off origin || needed for radius of calculating moving paths
+        
+        // Do not want to give the sun a random pos give it one on the axis
+        if planet.id != 0 && planet.id != manager.currentPlanet.id {
+            let converted_point = random_Z_X(z: zedOff)
+            zedOff = converted_point.y
+            xOff = converted_point.x
+        }
+        
         objectNode.position = SCNVector3(xOff, yOff, zedOff) // galactic coordinates
         
         if planet.id == 0 || planet.id == manager.currentPlanet.id {
@@ -49,34 +68,64 @@ struct ViewController: UIViewRepresentable {
         }
         
         // rotate object with rel to space
-        let moveCircular = generateOffsetAction(offset: abs(zedOff), time: planet.orbitTime)
-        objectNode.runAction(SCNAction.repeatForever(moveCircular))
+        //let moveCircular = generateOffsetAction(radius: radius, time: planet.orbitTime)
+        //objectNode.runAction(SCNAction.repeatForever(moveCircular))
         
         return objectNode
     }
     
-    func generateOffsetAction(offset: CGFloat, time: Double) -> SCNAction {
-        let quarter_interval = time / 2
+    func random_Z_X(z: CGFloat) -> CGPoint {
+        let deg_angle = manager.getAngle()
+        let angle = Double(deg_angle) * (.pi / 180.0)
+        var point: CGPoint = CGPoint()
         
-        // Since I only mod the z and x this sequences rotates the planets via each quadrant
-        let leftAction = SCNAction.moveBy(x: -offset, y: 0.0, z: offset, duration: quarter_interval)
-        let downAction = SCNAction.moveBy(x: offset, y: 0.0, z: offset, duration: quarter_interval)
-        let rightAction = SCNAction.moveBy(x: offset, y: 0.0, z: -offset, duration: quarter_interval)
-        let upAction = SCNAction.moveBy(x: -offset, y: 0.0, z: -offset, duration: quarter_interval)
+        point.x = z * cos(angle)
+        point.y = z * sin(angle)
+        ViewController.curr_angle = angle
         
-        return SCNAction.sequence([leftAction,downAction,rightAction, upAction])
+        return point
     }
     
+    // Array of sequences mimicing a circular orbit
+    func generateOffsetAction(radius: CGFloat, time: Double) -> SCNAction {
+        let per_action_time = time / 360
+        var mod_angle = ViewController.curr_angle
+        
+        var sequences: [SCNAction] = []
+        
+        for _ in 0..<360 {
+            mod_angle = mod_angle > 360 ? mod_angle + 1 : 0
+            
+            let nextZ = sin(CGFloat(mod_angle)) * radius
+            let nextX = cos(CGFloat(mod_angle)) * radius
+            
+            let vector = SCNVector3(nextX, 0.0, nextZ)
+            let action = SCNAction.move(to: vector, duration: per_action_time)
+            
+            sequences.append(action)
+        }
+        
+        return SCNAction.sequence(sequences)
+    }
     
-    //MARK: Adjust world coordinates
-    func adjust_to_current_planet() -> Void {
-        adjusted_origin = (manager.currentPlanet.radius / 50) + originZ
+    func planet_start(planet: PlanetModel) -> CGFloat {
+        CGFloat(planet.id) * (-2.0)
+    }
+    
+    var current_adjusted: CGFloat {
+        CGFloat(manager.currentPlanet.id) * (-2.0)
+    }
+    
+    func gradientColor() {
+        
     }
     
     //MARK: Make the world
     func makeUIView(context: Context) -> ARSCNView {
         
-        
+        sceneView.scene.fogColor = UIColor.blue
+        //sceneView.scene.fogEndDistance = 100.0
+        //sceneView.scene.fogStartDistance = 0.0
         
         for planet in manager.planets {
             //TODO: dispatch queue to make the process faster...

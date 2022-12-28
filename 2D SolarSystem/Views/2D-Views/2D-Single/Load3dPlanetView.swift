@@ -59,6 +59,7 @@ struct Load3dPlanetView: UIViewRepresentable {
         objectNode.scale = SCNVector3(0.25,0.25,0.25)
         objectNode.position = SCNVector3(-250, 400,-250)
         
+        //TODO: REMOVE TAP GESTURE FROM NODE --> Moon Coords get messed up.....
         
         // rotate moon with rel to space
         let moveCircular = generateOffsetAction(offset: 500)

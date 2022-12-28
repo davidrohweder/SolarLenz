@@ -14,7 +14,7 @@ struct Main_Flat: View {
         ZStack {
             StarryBackgroundView()
             VStack {
-                SpecialTextView(text: "Our Solar System")
+                SpecialTextView(text: "SolarLenz")
                     .bold()
                     .italic()
                     .font(.title)
