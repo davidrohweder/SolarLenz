@@ -19,6 +19,14 @@ struct StarryBackgroundView: View {
                 LinearGradient(gradient: Gradient(colors: [.black, .black,.indigo, .black,.black,]), startPoint: .top, endPoint: .bottom)
             )
             .ignoresSafeArea()
+            Image("a1")
+                .resizable()
+                .scaledToFit()
+                .overlay(
+                    RadialGradient(gradient: Gradient(colors: [Color.black.opacity(0.3)]), center: .center, startRadius: 100, endRadius: UIScreen.main.bounds.width)
+                )
+                .ignoresSafeArea()
+                
             ForEach(0 ..< numStars, id:\.self) { i in
                 StarView(opacity: Double.random(in: 0...maxOpacity), size: Double.random(in: 0...maxSize))
                     .offset(x: Double.random(in: -abs_width_rad...abs_width_rad), y: Double.random(in: -abs_height_rad...abs_height_rad))

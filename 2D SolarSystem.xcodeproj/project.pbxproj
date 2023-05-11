@@ -72,6 +72,7 @@
 		73A4CB56292E8D9B003BC53B /* AudioModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73A4CB55292E8D9B003BC53B /* AudioModel.swift */; };
 		73B00CA5293A9A6800A46998 /* PlanetManaer_ComputedVars.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73B00CA4293A9A6800A46998 /* PlanetManaer_ComputedVars.swift */; };
 		73B00CA7293A9AD900A46998 /* PlanetManager_LowPower.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73B00CA6293A9AD900A46998 /* PlanetManager_LowPower.swift */; };
+		73BEB01F29AAAF3E00C46CBA /* a1.png in Resources */ = {isa = PBXBuildFile; fileRef = 73BEB01E29AAAF3E00C46CBA /* a1.png */; };
 		73D6400D2926B5BA00D38129 /* 3d-sun.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 73D6400C2926B5BA00D38129 /* 3d-sun.usdz */; };
 		73D6400F2926B95C00D38129 /* PlanetModel_ComputedVars.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D6400E2926B95C00D38129 /* PlanetModel_ComputedVars.swift */; };
 /* End PBXBuildFile section */
@@ -163,6 +164,7 @@
 		73A9ACC4293C513700AE9A00 /* -D-SolarSystem-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "-D-SolarSystem-Info.plist"; sourceTree = SOURCE_ROOT; };
 		73B00CA4293A9A6800A46998 /* PlanetManaer_ComputedVars.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanetManaer_ComputedVars.swift; sourceTree = "<group>"; };
 		73B00CA6293A9AD900A46998 /* PlanetManager_LowPower.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanetManager_LowPower.swift; sourceTree = "<group>"; };
+		73BEB01E29AAAF3E00C46CBA /* a1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = a1.png; sourceTree = "<group>"; };
 		73D6400C2926B5BA00D38129 /* 3d-sun.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = "3d-sun.usdz"; sourceTree = "<group>"; };
 		73D6400E2926B95C00D38129 /* PlanetModel_ComputedVars.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanetModel_ComputedVars.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -221,6 +223,7 @@
 				735F5EAC2922A48A0044F892 /* ViewModel */,
 				735F5EAF2922A4D60044F892 /* Models */,
 				63840F50290EF56400A6659A /* Assets.xcassets */,
+				73BEB01E29AAAF3E00C46CBA /* a1.png */,
 				63840F52290EF56400A6659A /* Preview Content */,
 			);
 			path = "2D SolarSystem";
@@ -567,6 +570,7 @@
 				735F5EE42925DC070044F892 /* 3d-saturn.usdz in Resources */,
 				735F5EE62925DC7E0044F892 /* 3d-jupiter.usdz in Resources */,
 				735F5EDE2925DC070044F892 /* 3d-venus.usdz in Resources */,
+				73BEB01F29AAAF3E00C46CBA /* a1.png in Resources */,
 				735F5EE02925DC070044F892 /* 3d-mercury.usdz in Resources */,
 				735F5EE12925DC070044F892 /* 3d-mars.usdz in Resources */,
 				63840F51290EF56400A6659A /* Assets.xcassets in Resources */,
