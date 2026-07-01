@@ -64,16 +64,17 @@ struct ARContainerView: UIViewRepresentable {
         private var systemRoot: Entity?
 
         // Layout, in metres.
-        private let sunDiameter: Float = 0.38
-        private let minOrbit: Float = 0.32
-        private let maxOrbit: Float = 0.88
-        private let placementDistance: Float = 1.15
+        private let sunDiameter: Float = 0.34
+        private let minOrbit: Float = 0.48
+        private let maxOrbit: Float = 1.24
+        private let placementDistance: Float = 1.25
         private let placementTimeout: TimeInterval = 3.0
-        private let focusDistance: Float = 0.52
-        private let focusedDiameter: Float = 0.38
+        private let focusDistance: Float = 0.58
+        private let focusedDiameter: Float = 0.36
         private let secondsPerReferenceOrbit: TimeInterval = 180
         private let speedCompression: Double = 0.48
-        private let orbitCompressionExponent = 0.55
+        private let orbitCompressionExponent = 0.30
+        private let visualEccentricityMultiplier = 1.75
         private let visualInclinationMultiplier = 1.6
         private let ringSegments = 192
 
@@ -223,8 +224,8 @@ struct ARContainerView: UIViewRepresentable {
                 physicalRadius: planet.volumetricMeanRadiusKm,
                 minPhysicalRadius: minPhysicalRadiusKm,
                 maxPhysicalRadius: maxPhysicalRadiusKm,
-                minDiameter: 0.075,
-                maxDiameter: 0.30
+                minDiameter: 0.014,
+                maxDiameter: 0.095
             ))
         }
 
@@ -254,7 +255,7 @@ struct ARContainerView: UIViewRepresentable {
             )
             let position = OrbitMath.keplerianPosition(
                 semiMajorAxis: Double(a),
-                eccentricity: orbitEccentricity(for: planet),
+                eccentricity: visualOrbitEccentricity(for: planet),
                 meanAnomaly: meanAnomaly,
                 inclinationRadians: visualInclination(for: planet),
                 longitudeOfAscendingNode: longitudeOfAscendingNode(for: planet),
@@ -273,7 +274,7 @@ struct ARContainerView: UIViewRepresentable {
                 let eccentricAnomaly = Double(i) / Double(ringSegments) * 2 * Double.pi
                 let position = OrbitMath.keplerianPosition(
                     semiMajorAxis: semiMajorAxis,
-                    eccentricity: orbitEccentricity(for: planet),
+                    eccentricity: visualOrbitEccentricity(for: planet),
                     eccentricAnomaly: eccentricAnomaly,
                     inclinationRadians: inclination,
                     longitudeOfAscendingNode: ascendingNode,
@@ -313,6 +314,12 @@ struct ARContainerView: UIViewRepresentable {
                 return (aphelion - perihelion) / (aphelion + perihelion)
             }
             return planet.orbitEccentricity
+        }
+
+        private func visualOrbitEccentricity(for planet: Planet) -> Double {
+            // Actual planetary eccentricities are subtle at metre scale, so AR gently
+            // exaggerates them while preserving each orbit's relative character.
+            min(orbitEccentricity(for: planet) * visualEccentricityMultiplier, 0.38)
         }
 
         private func longitudeOfAscendingNode(for planet: Planet) -> Double {

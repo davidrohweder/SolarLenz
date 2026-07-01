@@ -37,45 +37,45 @@ struct OrbitMathTests {
             semiMajorAxis: 57.9,
             minSemiMajorAxis: minAxis,
             maxSemiMajorAxis: maxAxis,
-            minRadius: 0.32,
-            maxRadius: 0.88,
-            exponent: 0.55
+            minRadius: 0.48,
+            maxRadius: 1.24,
+            exponent: 0.30
         )
         let earth = OrbitMath.compressedOrbitRadius(
             semiMajorAxis: 149.6,
             minSemiMajorAxis: minAxis,
             maxSemiMajorAxis: maxAxis,
-            minRadius: 0.32,
-            maxRadius: 0.88,
-            exponent: 0.55
+            minRadius: 0.48,
+            maxRadius: 1.24,
+            exponent: 0.30
         )
         let mars = OrbitMath.compressedOrbitRadius(
             semiMajorAxis: 227.9,
             minSemiMajorAxis: minAxis,
             maxSemiMajorAxis: maxAxis,
-            minRadius: 0.32,
-            maxRadius: 0.88,
-            exponent: 0.55
+            minRadius: 0.48,
+            maxRadius: 1.24,
+            exponent: 0.30
         )
         let jupiter = OrbitMath.compressedOrbitRadius(
             semiMajorAxis: 778.6,
             minSemiMajorAxis: minAxis,
             maxSemiMajorAxis: maxAxis,
-            minRadius: 0.32,
-            maxRadius: 0.88,
-            exponent: 0.55
+            minRadius: 0.48,
+            maxRadius: 1.24,
+            exponent: 0.30
         )
         let neptune = OrbitMath.compressedOrbitRadius(
             semiMajorAxis: maxAxis,
             minSemiMajorAxis: minAxis,
             maxSemiMajorAxis: maxAxis,
-            minRadius: 0.32,
-            maxRadius: 0.88,
-            exponent: 0.55
+            minRadius: 0.48,
+            maxRadius: 1.24,
+            exponent: 0.30
         )
 
-        #expect(abs(mercury - 0.32) < 0.0001)
-        #expect(abs(neptune - 0.88) < 0.0001)
+        #expect(abs(mercury - 0.48) < 0.0001)
+        #expect(abs(neptune - 1.24) < 0.0001)
         #expect(mercury < earth)
         #expect(earth < mars)
         #expect(mars < jupiter)
