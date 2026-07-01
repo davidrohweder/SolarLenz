@@ -67,14 +67,14 @@ struct ARContainerView: UIViewRepresentable {
         private var homePosition: SIMD3<Float>?
 
         // Layout, in metres.
-        private let sunDiameter: Float = 0.32
-        private let minOrbit: Float = 0.20
-        private let maxOrbit: Float = 0.68
-        private let placementDistance: Float = 0.86
+        private let sunDiameter: Float = 0.40
+        private let minOrbit: Float = 0.18
+        private let maxOrbit: Float = 0.48
+        private let placementDistance: Float = 0.58
         private let placementTimeout: TimeInterval = 3.0
-        private let inspectDistance: Float = 0.42
-        private let followDistance: Float = 0.46
-        private let focusedDiameter: Float = 0.38
+        private let inspectDistance: Float = 0.32
+        private let followDistance: Float = 0.36
+        private let focusedDiameter: Float = 0.44
         private let secondsPerReferenceOrbit: TimeInterval = 180
         private let speedCompression: Double = 0.48
         private let visualInclinationMultiplier = 2.4
@@ -136,11 +136,7 @@ struct ARContainerView: UIViewRepresentable {
             let normal: Bool = { if case .normal = frame.camera.trackingState { return true }; return false }()
             guard normal || Date().timeIntervalSince(attachTime) >= placementTimeout else { return }
 
-            let t = frame.camera.transform
-            let cam = SIMD3<Float>(t.columns.3.x, t.columns.3.y, t.columns.3.z)
-            var fwd = -SIMD3<Float>(t.columns.2.x, t.columns.2.y, t.columns.2.z)
-            let l = simd_length(fwd); fwd = l > 0 ? fwd / l : SIMD3<Float>(0, 0, -1)
-            let center = cam + fwd * placementDistance
+            let center = pointInFrontOfCamera(distance: placementDistance) ?? .zero
 
             var m = matrix_identity_float4x4
             m.columns.3 = SIMD4<Float>(center.x, center.y, center.z, 1)
@@ -154,9 +150,11 @@ struct ARContainerView: UIViewRepresentable {
                 didBuild = true
                 Task { [weak self] in
                     await self?.buildSystem(on: anchor)
+                    self?.pinAnchorInFront(anchor, distance: self?.placementDistance ?? 0.58)
                     self?.store.send(.systemPlaced)
                 }
             } else {
+                pinAnchorInFront(anchor, distance: placementDistance)
                 store.send(.systemPlaced)
             }
         }
@@ -230,8 +228,8 @@ struct ARContainerView: UIViewRepresentable {
                 physicalRadius: planet.volumetricMeanRadiusKm,
                 minPhysicalRadius: minPhysicalRadiusKm,
                 maxPhysicalRadius: maxPhysicalRadiusKm,
-                minDiameter: 0.055,
-                maxDiameter: 0.24
+                minDiameter: 0.075,
+                maxDiameter: 0.30
             ))
         }
 
@@ -340,7 +338,11 @@ struct ARContainerView: UIViewRepresentable {
             guard hasPlaced, let anchor = systemAnchor else { return }
             elapsed += deltaTime
 
-            updateAnchorTracking(anchor: anchor)
+            if store.phase == .placing {
+                pinAnchorInFront(anchor, distance: placementDistance)
+            } else {
+                updateAnchorTracking(anchor: anchor)
+            }
 
             for planet in planets {
                 guard let container = containers[planet.id] else { continue }
@@ -401,8 +403,18 @@ struct ARContainerView: UIViewRepresentable {
             anchor.setPosition(next, relativeTo: nil)
         }
 
+        private func pinAnchorInFront(_ anchor: AnchorEntity, distance: Float) {
+            guard let center = pointInFrontOfCamera(distance: distance) else { return }
+            anchor.setPosition(center, relativeTo: nil)
+            homePosition = center
+        }
+
         /// World point directly in front of the camera at the requested distance.
         private func focusWorldPosition(distance: Float) -> SIMD3<Float>? {
+            pointInFrontOfCamera(distance: distance)
+        }
+
+        private func pointInFrontOfCamera(distance: Float) -> SIMD3<Float>? {
             guard let arView else { return nil }
             let t = arView.cameraTransform.matrix
             let cam = SIMD3<Float>(t.columns.3.x, t.columns.3.y, t.columns.3.z)
