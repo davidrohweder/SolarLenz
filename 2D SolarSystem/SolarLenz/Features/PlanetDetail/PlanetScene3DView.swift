@@ -1,18 +1,18 @@
 //
-//  PlanetModel3DView.swift
+//  PlanetScene3DView.swift
 //  SolarLenz
 //
 //  The app's "3D" mode: an interactive SceneKit view of a planet's bundled USDZ model —
 //  drag to orbit, pinch to zoom. Uses a transparent SCNView so the model floats over the
-//  dark starfield (SwiftUI's SceneView forces a white backdrop). Crash-safe, with the
-//  Earth-and-moon touch kept from the original.
+//  dark starfield (SwiftUI's SceneView forces a white backdrop). Crash-safe, with a small
+//  Earth-and-moon detail.
 //
 
 import SwiftUI
 import SceneKit
 
 @available(iOS 18, *)
-struct PlanetModel3DView: View {
+struct PlanetScene3DView: View {
     let planet: Planet
 
     @State private var scene: SCNScene?

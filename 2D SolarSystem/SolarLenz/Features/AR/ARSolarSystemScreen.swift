@@ -3,8 +3,8 @@
 //  SolarLenz
 //
 //  The AR experience: a big RealityKit solar system fixed in front of the user, with a
-//  Liquid Glass HUD. Tap or step through planets to focus one in the foreground; the rest
-//  keep orbiting behind it.
+//  compact HUD. Tap or step through planets to track one at its live orbital position; the
+//  rest keep orbiting around it.
 //
 
 import SwiftUI
@@ -32,6 +32,11 @@ struct ARSolarSystemScreen: View {
             }
         }
         .foregroundStyle(.white)
+        .onAppear(perform: syncTrackingFromRouter)
+        .onChange(of: router.arTrackingPlanetID) { _, _ in syncTrackingFromRouter() }
+        .onChange(of: model.selectedPlanetID) { _, _ in
+            if store.focusedID != nil { syncTrackingFromRouter() }
+        }
     }
 
     // MARK: - Interaction
@@ -40,7 +45,12 @@ struct ARSolarSystemScreen: View {
         withAnimation(Theme.Motion.interactive) {
             store.send(.focus(planet.id))
             model.send(.select(planet))
+            router.send(.trackInAR(planet.id))
         }
+    }
+
+    private func syncTrackingFromRouter() {
+        store.send(.focus(router.arTrackingPlanetID))
     }
 
     private func step(_ delta: Int) {
@@ -88,7 +98,7 @@ struct ARSolarSystemScreen: View {
             focusControls(planet)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         } else {
-            Label("Tap a planet to focus it", systemImage: "hand.tap")
+            Label("Tap a planet to track its orbit", systemImage: "hand.tap")
                 .font(Theme.Typography.caption)
                 .padding(.horizontal, Theme.Spacing.l).frame(height: 44)
                 .glassPill().transition(.opacity)
@@ -99,32 +109,60 @@ struct ARSolarSystemScreen: View {
         VStack(spacing: Theme.Spacing.m) {
             HStack(spacing: Theme.Spacing.l) {
                 stepButton("chevron.left", label: "Previous planet") { step(-1) }
-                VStack(spacing: 0) {
-                    Text(planet.displayName).font(Theme.Typography.title)
-                    Text("\(planet.numberOfNaturalSatellites) moons · \(planet.hasRingSystem ? "rings" : "no rings")")
-                        .font(Theme.Typography.caption).foregroundStyle(.secondary)
-                }
-                .frame(minWidth: 160)
-                .contentTransition(.opacity)
+                trackingCard(planet)
                 stepButton("chevron.right", label: "Next planet") { step(1) }
             }
-            .padding(.horizontal, Theme.Spacing.l).padding(.vertical, Theme.Spacing.s)
-            .glassCard(cornerRadius: Theme.Radius.pill)
 
             HStack(spacing: Theme.Spacing.m) {
-                Button { withAnimation(Theme.Motion.interactive) { store.send(.focus(nil)) } } label: {
-                    Label("System", systemImage: "circle.hexagongrid")
+                Button { withAnimation(Theme.Motion.interactive) { router.send(.releaseARTracking) } } label: {
+                    Label("Release", systemImage: "circle.hexagongrid")
                         .font(.subheadline).padding(.horizontal, Theme.Spacing.l).frame(height: 44)
                 }
                 .glassPill()
 
                 Button { withAnimation(Theme.Motion.transition) { router.send(.showDetail) } } label: {
-                    Label("Explore \(planet.displayName)", systemImage: "sparkles")
+                    Label("Data", systemImage: "tablecells")
                         .font(.headline).padding(.horizontal, Theme.Spacing.l).frame(height: 44)
                 }
                 .glassPill()
             }
         }
+    }
+
+    private func trackingCard(_ planet: Planet) -> some View {
+        VStack(spacing: Theme.Spacing.s) {
+            VStack(spacing: 0) {
+                Text(planet.displayName)
+                    .font(Theme.Typography.title)
+                Label("Tracking live orbit", systemImage: "scope")
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: Theme.Spacing.m) {
+                metric("Year", planet.orbitalPeriodDescription)
+                metric("Tilt", String(format: "%.1f°", planet.obliquityToOrbitDeg))
+                metric("Moons", "\(planet.numberOfNaturalSatellites)")
+                if planet.hasRingSystem { metric("Rings", "Yes") }
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.m)
+        .padding(.vertical, Theme.Spacing.s)
+        .frame(minWidth: 210)
+        .glassCard(cornerRadius: Theme.Radius.control)
+        .contentTransition(.opacity)
+    }
+
+    private func metric(_ label: String, _ value: String) -> some View {
+        VStack(spacing: 1) {
+            Text(label.uppercased())
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Theme.Palette.accent)
+            Text(value)
+                .font(Theme.Typography.caption)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(minWidth: 38)
     }
 
     private func stepButton(_ icon: String, label: String, action: @escaping () -> Void) -> some View {

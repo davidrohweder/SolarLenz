@@ -3,7 +3,7 @@
 //  SolarLenz
 //
 //  Observable state for the AR experience: the placement phase, plus which planet (if any)
-//  is currently focused — flown to the foreground while the rest of the system keeps orbiting.
+//  is currently tracked in its live orbit while the rest of the system keeps moving.
 //
 
 import ARKit
@@ -22,12 +22,12 @@ final class ARExperienceStore: IntentStore {
 
     enum Intent: Equatable {
         case systemPlaced
-        case focus(Int?)     // focus a planet by id, or nil to return to the system view
+        case focus(Int?)     // track a planet by id, or nil to return to the system view
         case reset
     }
 
     private(set) var phase: Phase
-    /// The focused planet id, or nil when viewing the whole system.
+    /// The tracked planet id, or nil when viewing the whole system.
     private(set) var focusedID: Int?
 
     init(isSupported: Bool = ARWorldTrackingConfiguration.isSupported) {

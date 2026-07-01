@@ -9,10 +9,6 @@ import Foundation
 import os
 
 /// Errors surfaced while loading the bundled planetary data set.
-///
-/// The original `StorageManager` swallowed every failure with `print(error)` and a `nil`,
-/// leaving callers to force-unwrap into a crash. These typed, localized errors let the UI
-/// present something meaningful instead.
 enum PlanetDataError: LocalizedError {
     case resourceMissing(name: String)
     case decodingFailed(underlying: Error)
@@ -29,10 +25,9 @@ enum PlanetDataError: LocalizedError {
 
 /// Loads the immutable planetary data set shipped in the app bundle.
 ///
-/// Unlike the original `StorageManager`, this never force-unwraps, never prints, and
-/// surfaces typed errors so callers can react instead of crashing. The data set is
-/// read-only content, so there is no save path — persistence of user state lives
-/// elsewhere (e.g. `@AppStorage`).
+/// This never force-unwraps, never prints, and surfaces typed errors so callers can react
+/// instead of crashing. The data set is read-only content, so there is no save path; user
+/// preferences live elsewhere, such as `@AppStorage`.
 struct PlanetRepository {
 
     private let bundle: Bundle

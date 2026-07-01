@@ -9,10 +9,8 @@ import Foundation
 
 /// Audience tiers the app tailors its educational copy to.
 ///
-/// Consolidates the brackets that were previously inlined as magic ranges in
-/// `BracketInformationView` (`1..<11`, `11..<19`, default). An age of `0` is treated
-/// as "not yet set" by the navigation layer, which is why `init(age:)` never produces a
-/// sentinel — the onboarding decision lives with the router, not here.
+/// An age of `0` is treated as "not yet set" by the navigation layer, which is why
+/// `init(age:)` never produces a sentinel; the onboarding decision lives with the router.
 enum AgeBracket: String, CaseIterable, Identifiable, Sendable {
     case child
     case teen
@@ -20,7 +18,7 @@ enum AgeBracket: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    /// Buckets a concrete age into a tier, matching the original app's ranges.
+    /// Buckets a concrete age into a tier.
     init(age: Int) {
         switch age {
         case ..<11:   self = .child

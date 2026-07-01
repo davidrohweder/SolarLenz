@@ -4,5 +4,9 @@
 <dict>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>SolarLenz uses the microphone so spoken commands can navigate planets, AR tracking, and audio controls.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>SolarLenz uses speech recognition to turn your spoken planet commands into app actions.</string>
 </dict>
 </plist>

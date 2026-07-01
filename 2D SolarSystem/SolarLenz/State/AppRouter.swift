@@ -2,8 +2,7 @@
 //  AppRouter.swift
 //  SolarLenz
 //
-//  Observable navigation store. Replaces the ~10 loose `show_*` booleans that were
-//  scattered across the old PlanetManager.
+//  Observable navigation store for top-level MVI routing.
 //
 
 import Observation
@@ -28,21 +27,29 @@ final class AppRouter: IntentStore {
         case showSystem
         case showDetail
         case enterAR
+        case trackInAR(Int?)
+        case releaseARTracking
         case presentSettings(Bool)
+        case presentCommandGuide(Bool)
     }
 
     private(set) var mode: Mode = .solarSystem
+    private(set) var arTrackingPlanetID: Int?
 
-    /// Bound directly by the settings `.sheet`; opened via `.presentSettings(true)` and
-    /// closed by SwiftUI's dismissal (the one place a two-way binding is idiomatic).
-    var showSettings = false
+    /// Read by the settings sheet. Views open and close it by sending `.presentSettings`.
+    private(set) var showSettings = false
+    private(set) var showCommandGuide = false
 
     func send(_ intent: Intent) {
         switch intent {
         case .showSystem:              mode = .solarSystem
         case .showDetail:              mode = .planetDetail
-        case .enterAR:                 mode = .ar
+        case .enterAR:                 arTrackingPlanetID = nil; mode = .ar
+        case .trackInAR(let id):       arTrackingPlanetID = id; mode = .ar
+        case .releaseARTracking:       arTrackingPlanetID = nil; mode = .ar
         case .presentSettings(let on): showSettings = on
+        case .presentCommandGuide(let on):
+            showCommandGuide = on
         }
     }
 }

@@ -4,17 +4,12 @@
 //
 //  Ambient background music, as a small @Observable service.
 //
-//  Replaces the original `AudioModel`, which force-unwrapped the bundle path, called
-//  `fatalError` on any playback failure, and set a global `.playAndRecord` session just to
-//  loop music (fighting the speech recognizer for the audio session).
-//
-
 import AVFoundation
 import Observation
 import os
 
-/// Loops the bundled ambient track. Fails silently rather than crashing, and uses the
-/// `.ambient` session category so it mixes politely and yields cleanly to voice capture.
+/// Loops the bundled ambient track. Fails silently rather than crashing, and uses a playback
+/// session so the track still works when the hardware silent switch is on.
 @available(iOS 18, *)
 @MainActor
 @Observable
@@ -32,8 +27,7 @@ final class AmbientAudioStore {
         self.fileExtension = fileExtension
     }
 
-    func play() {
-        guard !isPlaying else { return }
+    func play(ducked: Bool = false, allowsRecording: Bool = false) {
         do {
             if player == nil {
                 guard let url = Bundle.main.url(forResource: resource, withExtension: fileExtension) else {
@@ -42,13 +36,15 @@ final class AmbientAudioStore {
                 }
                 let player = try AVAudioPlayer(contentsOf: url)
                 player.numberOfLoops = -1
-                player.volume = 0.4
+                player.volume = 0.32
                 player.prepareToPlay()
                 self.player = player
             }
-            try activateSession()
-            player?.play()
-            isPlaying = true
+            player?.volume = ducked ? 0.12 : 0.32
+            try activateSession(allowsRecording: allowsRecording)
+            if !isPlaying {
+                isPlaying = player?.play() == true
+            }
         } catch {
             // Degrade silently — no audio is acceptable; a crash is not.
             logger.error("Ambient audio failed to start: \(error.localizedDescription, privacy: .public)")
@@ -66,9 +62,13 @@ final class AmbientAudioStore {
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    private func activateSession() throws {
+    private func activateSession(allowsRecording: Bool) throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.ambient, options: [])
+        if allowsRecording {
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers, .defaultToSpeaker, .allowBluetoothHFP])
+        } else {
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        }
         try session.setActive(true)
     }
 }

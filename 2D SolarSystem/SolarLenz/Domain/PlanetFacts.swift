@@ -3,8 +3,6 @@
 //  SolarLenz
 //
 //  Turns a Planet's raw fields into human-readable, grouped, age-bracketed fact sections.
-//  Replaces the original app's raw `Text("mass10_24Kg 5.97")` dumps with labels + units,
-//  while keeping the same "kids see less, adults see everything" depth.
 //
 
 import Foundation
@@ -12,7 +10,8 @@ import Foundation
 struct FactRow: Identifiable, Hashable {
     let label: String
     let value: String
-    var id: String { label }
+    let explanation: String?
+    var id: String { "\(label)-\(value)" }
 }
 
 struct FactSection: Identifiable, Hashable {
@@ -22,20 +21,40 @@ struct FactSection: Identifiable, Hashable {
 }
 
 enum PlanetFacts {
+    static let sourceTitle = "NASA/JPL planetary physical parameters"
+    static let sourceURL = "https://ssd.jpl.nasa.gov/planets/phys_par.html"
+    static let moonSourceTitle = "NASA Space Place moon counts"
+    static let moonSourceURL = "https://spaceplace.nasa.gov/how-many-moons/"
 
     /// Grouped facts tailored to the audience: `.child` gets a friendly handful, `.teen` a
     /// solid set, `.adult` the full NASA sheet. Empty sections and missing fields are dropped.
     static func sections(for planet: Planet, bracket: AgeBracket) -> [FactSection] {
         let raw: [FactSection]
         switch bracket {
-        case .child: raw = child(planet)
-        case .teen:  raw = teen(planet)
-        case .adult: raw = adult(planet)
+        case .child: raw = profile(planet) + child(planet) + comparisons(planet)
+        case .teen:  raw = profile(planet) + teen(planet) + comparisons(planet)
+        case .adult: raw = profile(planet) + adult(planet) + comparisons(planet)
         }
         return raw.filter { !$0.rows.isEmpty }
     }
 
+    static func allSections(for planet: Planet) -> [FactSection] {
+        (profile(planet) + adult(planet) + comparisons(planet)).filter { !$0.rows.isEmpty }
+    }
+
     // MARK: - Brackets
+
+    private static func profile(_ p: Planet) -> [FactSection] {
+        [
+            section("Profile", [
+                ("World type", p.isStar ? "Star" : (p.hasRingSystem ? "Ringed planet" : "Planet")),
+                ("Distance from Sun", p.isStar ? "Center of the system" : String(format: "%.3f AU", p.distanceInAU)),
+                ("Known moons", p.isStar ? nil : "\(p.numberOfNaturalSatellites)"),
+                ("Ring system", p.isStar ? nil : (p.hasRingSystem ? "Yes" : "No")),
+                ("Primary data source", sourceTitle),
+            ]),
+        ]
+    }
 
     private static func child(_ p: Planet) -> [FactSection] {
         [section("The basics", [
@@ -129,11 +148,25 @@ enum PlanetFacts {
         ]
     }
 
+    private static func comparisons(_ p: Planet) -> [FactSection] {
+        guard !p.isStar else { return [] }
+        return [
+            section("Compared with Earth", [
+                ("Radius vs Earth", earthRatio(p.volumetricMeanRadiusKm, earth: 6_371, digits: 2)),
+                ("Mass vs Earth", earthRatio(p.mass10e24Kg, earth: 5.97217, digits: 2)),
+                ("Gravity vs Earth", p.surfaceGravityDisplay.flatMap { earthRatio($0, earth: 9.80665, digits: 2) }),
+                ("Day vs Earth", earthRatio(abs(p.lengthOfDayHrs), earth: 24, digits: 2)),
+                ("Year vs Earth", earthRatio(p.siderealOrbitPeriodDays, earth: 365.256, digits: 2)),
+                ("Sunlight vs Earth", p.solarIrradianceWM2.flatMap { earthRatio($0, earth: 1361, digits: 2) }),
+            ]),
+        ]
+    }
+
     // MARK: - Formatting
 
     private static func section(_ title: String, _ items: [(String, String?)]) -> FactSection {
         FactSection(title: title, rows: items.compactMap { label, value in
-            value.map { FactRow(label: label, value: $0) }
+            value.map { FactRow(label: label, value: $0, explanation: explanation(for: label)) }
         })
     }
 
@@ -161,5 +194,114 @@ enum PlanetFacts {
     private static func temp(_ kelvin: Double) -> String? {
         guard kelvin > 0 else { return nil }
         return "\(Int(kelvin.rounded())) K"
+    }
+
+    private static func earthRatio(_ value: Double, earth: Double, digits: Int) -> String? {
+        guard value > 0, earth > 0 else { return nil }
+        let ratio = value / earth
+        return String(format: "%.\(digits)f× Earth", ratio)
+    }
+
+    static func sourceTitle(for row: FactRow) -> String {
+        usesMoonSource(row.label) ? moonSourceTitle : sourceTitle
+    }
+
+    static func sourceURL(for row: FactRow) -> String {
+        usesMoonSource(row.label) ? moonSourceURL : sourceURL
+    }
+
+    private static func usesMoonSource(_ label: String) -> Bool {
+        ["Known moons", "Moons", "Natural satellites", "Ring system"].contains(label)
+    }
+
+    private static func explanation(for label: String) -> String? {
+        switch label {
+        case "World type":
+            return "A plain-language grouping for the body being shown."
+        case "Distance from Sun":
+            return "Astronomical units compare the body's average orbital distance with Earth's average distance from the Sun."
+        case "Known moons", "Moons", "Natural satellites":
+            return "Confirmed natural satellites listed for the planet."
+        case "Ring system":
+            return "Whether the planet has a known ring system."
+        case "Primary data source":
+            return "The physical and orbital values shown here are sourced from NASA/JPL planetary data."
+        case "How big across":
+            return "The body's mean diameter, computed from its mean radius."
+        case "Mean radius":
+            return "The average radius of the body, useful when a planet is not a perfect sphere."
+        case "Equatorial radius":
+            return "Radius measured around the equator; fast-spinning planets bulge here."
+        case "Polar radius":
+            return "Radius measured from pole to pole."
+        case "Core radius":
+            return "Estimated radius of the central core where available."
+        case "Ellipticity":
+            return "How much the body is flattened compared with a perfect sphere."
+        case "Volume":
+            return "Total space occupied by the body."
+        case "Mass":
+            return "How much matter the body contains."
+        case "Mean density":
+            return "Mass divided by volume; this hints at rocky, icy, or gaseous composition."
+        case "Surface gravity":
+            return "The gravitational pull at the visible surface or one-bar level."
+        case "Surface acceleration":
+            return "Effective acceleration at the surface, including rotation effects when available."
+        case "Escape velocity":
+            return "Speed needed to leave the body's gravity without more propulsion."
+        case "GM":
+            return "Standard gravitational parameter, used for precise orbit calculations."
+        case "Moment of inertia":
+            return "A clue to how mass is distributed inside the body."
+        case "Semi-major axis":
+            return "Half the long axis of the orbit; a standard way to describe average orbital size."
+        case "Perihelion":
+            return "Closest point to the Sun in the body's orbit."
+        case "Aphelion":
+            return "Farthest point from the Sun in the body's orbit."
+        case "Orbital period", "A year here lasts", "Sidereal period":
+            return "Time required to complete one orbit relative to the fixed stars."
+        case "Tropical period":
+            return "Orbit period measured from season to season."
+        case "Synodic period":
+            return "Time between similar alignments as seen from Earth."
+        case "Eccentricity":
+            return "How stretched the orbit is; zero is a circle."
+        case "Inclination":
+            return "Tilt of the orbital plane compared with Earth's orbital plane."
+        case "Orbital speed", "Mean orbital velocity":
+            return "Average speed along the orbit."
+        case "Max orbital velocity":
+            return "Fastest orbital speed, usually near perihelion."
+        case "Min orbital velocity":
+            return "Slowest orbital speed, usually near aphelion."
+        case "Sidereal rotation":
+            return "Time for one spin relative to the fixed stars."
+        case "Day length", "A day here lasts", "Length of day":
+            return "Time from one noon to the next, which can differ from the spin period."
+        case "Axial tilt", "Obliquity to orbit":
+            return "Tilt of the body's spin axis relative to its orbit."
+        case "Equator inclination":
+            return "Tilt of the equator relative to the orbital plane."
+        case "Temperature", "Mean temperature", "Black-body temp":
+            return "Estimated temperature from absorbed sunlight, before local atmosphere effects."
+        case "Bond albedo":
+            return "Fraction of all incoming sunlight reflected back to space."
+        case "Geometric albedo":
+            return "Brightness compared with a perfectly reflecting disk."
+        case "Solar irradiance":
+            return "Sunlight power received per square meter at this orbit."
+        case "V-band magnitude":
+            return "Visible-light brightness in the astronomical V band."
+        case "J₂":
+            return "How much the gravity field differs from a perfect sphere."
+        case "Topographic range":
+            return "Difference between high and low terrain where known."
+        case "Radius vs Earth", "Mass vs Earth", "Gravity vs Earth", "Day vs Earth", "Year vs Earth", "Sunlight vs Earth":
+            return "A comparison that makes the raw value easier to interpret."
+        default:
+            return nil
+        }
     }
 }

@@ -12,13 +12,13 @@
 		1FCEC97AA6B4A9FD838E2332 /* ARExperienceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA8C0F53AB3B070FEFE31CA2 /* ARExperienceStore.swift */; };
 		29B701B40824951B984AC577 /* ARSolarSystemScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45AF6CC3E29DDA7286D1EE23 /* ARSolarSystemScreen.swift */; };
 		43D3CCA384674F06903A340D /* ARContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37965A8D18D13648F951DC1 /* ARContainerView.swift */; };
-		63840F4D290EF56200A6659A /* _D_SolarSystemApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63840F4C290EF56200A6659A /* _D_SolarSystemApp.swift */; };
+		63840F4D290EF56200A6659A /* SolarLenzApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63840F4C290EF56200A6659A /* SolarLenzApp.swift */; };
 		63840F51290EF56400A6659A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 63840F50290EF56400A6659A /* Assets.xcassets */; };
 		63840F54290EF56400A6659A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 63840F53290EF56400A6659A /* Preview Assets.xcassets */; };
 		63840F68290EF56500A6659A /* _D_SolarSystemUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63840F67290EF56500A6659A /* _D_SolarSystemUITests.swift */; };
 		63840F6A290EF56500A6659A /* _D_SolarSystemUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63840F69290EF56500A6659A /* _D_SolarSystemUITestsLaunchTests.swift */; };
 		63BE6F64DCD9A3B96D172180 /* SeededGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F18FA421FB84A54F9B385BD /* SeededGeneratorTests.swift */; };
-		64CBE15365606A2688173329 /* PlanetModel3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0203AD2A6DAC0A266950E2E /* PlanetModel3DView.swift */; };
+		64CBE15365606A2688173329 /* PlanetScene3DView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0203AD2A6DAC0A266950E2E /* PlanetScene3DView.swift */; };
 		694767C6DF14E6258989242A /* AmbientAudioStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BB339F505ABDCA7087694D /* AmbientAudioStore.swift */; };
 		73133B6C2FF361C8007E6CDD /* Planet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73133B6B2FF361C8007E6CDD /* Planet.swift */; };
 		73133B6E2FF361CD007E6CDD /* AgeBracket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73133B6D2FF361CD007E6CDD /* AgeBracket.swift */; };
@@ -30,7 +30,7 @@
 		73133B7A2FF36200007E6CDD /* SolarSystemModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73133B792FF36200007E6CDD /* SolarSystemModel.swift */; };
 		73133B7C2FF36202007E6CDD /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73133B7B2FF36202007E6CDD /* AppRouter.swift */; };
 		73133B7E2FF3620B007E6CDD /* SeededGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73133B7D2FF3620B007E6CDD /* SeededGenerator.swift */; };
-		73133B802FF3620E007E6CDD /* PlaceholderViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73133B7F2FF3620E007E6CDD /* PlaceholderViews.swift */; };
+		73133B802FF3620E007E6CDD /* ErrorStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73133B7F2FF3620E007E6CDD /* ErrorStateView.swift */; };
 		73133B822FF36218007E6CDD /* StarFieldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73133B812FF36218007E6CDD /* StarFieldView.swift */; };
 		73133B842FF36222007E6CDD /* PlanetSprite.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73133B832FF36222007E6CDD /* PlanetSprite.swift */; };
 		73133B862FF3622D007E6CDD /* OrbitCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73133B852FF3622D007E6CDD /* OrbitCanvasView.swift */; };
@@ -87,7 +87,7 @@
 		45AF6CC3E29DDA7286D1EE23 /* ARSolarSystemScreen.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ARSolarSystemScreen.swift; path = AR/ARSolarSystemScreen.swift; sourceTree = "<group>"; };
 		59F0D54B48B4C6BFF003BABD /* PlanetTag.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PlanetTag.swift; path = AR/PlanetTag.swift; sourceTree = "<group>"; };
 		63840F49290EF56200A6659A /* 2D SolarSystem.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "2D SolarSystem.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		63840F4C290EF56200A6659A /* _D_SolarSystemApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = _D_SolarSystemApp.swift; sourceTree = "<group>"; };
+		63840F4C290EF56200A6659A /* SolarLenzApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarLenzApp.swift; sourceTree = "<group>"; };
 		63840F50290EF56400A6659A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		63840F53290EF56400A6659A /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		63840F59290EF56500A6659A /* 2D SolarSystemTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "2D SolarSystemTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -105,7 +105,7 @@
 		73133B792FF36200007E6CDD /* SolarSystemModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarSystemModel.swift; sourceTree = "<group>"; };
 		73133B7B2FF36202007E6CDD /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		73133B7D2FF3620B007E6CDD /* SeededGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeededGenerator.swift; sourceTree = "<group>"; };
-		73133B7F2FF3620E007E6CDD /* PlaceholderViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderViews.swift; sourceTree = "<group>"; };
+		73133B7F2FF3620E007E6CDD /* ErrorStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorStateView.swift; sourceTree = "<group>"; };
 		73133B812FF36218007E6CDD /* StarFieldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarFieldView.swift; sourceTree = "<group>"; };
 		73133B832FF36222007E6CDD /* PlanetSprite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanetSprite.swift; sourceTree = "<group>"; };
 		73133B852FF3622D007E6CDD /* OrbitCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitCanvasView.swift; sourceTree = "<group>"; };
@@ -130,7 +130,7 @@
 		AA8C0F53AB3B070FEFE31CA2 /* ARExperienceStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ARExperienceStore.swift; path = AR/ARExperienceStore.swift; sourceTree = "<group>"; };
 		B37965A8D18D13648F951DC1 /* ARContainerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ARContainerView.swift; path = AR/ARContainerView.swift; sourceTree = "<group>"; };
 		B61D94DD866598B6CB0253D0 /* OrbitMathTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OrbitMathTests.swift; sourceTree = "<group>"; };
-		E0203AD2A6DAC0A266950E2E /* PlanetModel3DView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlanetModel3DView.swift; sourceTree = "<group>"; };
+		E0203AD2A6DAC0A266950E2E /* PlanetScene3DView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlanetScene3DView.swift; sourceTree = "<group>"; };
 		E6883D29BA77D73D7E9FAE00 /* VoiceCommandTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoiceCommandTests.swift; sourceTree = "<group>"; };
 		E9BB339F505ABDCA7087694D /* AmbientAudioStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AmbientAudioStore.swift; path = Audio/AmbientAudioStore.swift; sourceTree = "<group>"; };
 		FF6624E081E52FEF6CF5862D /* PlanetDataTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlanetDataTests.swift; sourceTree = "<group>"; };
@@ -161,13 +161,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		1380991C03701E8BE97219C0 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Resources;
-			sourceTree = SOURCE_ROOT;
-		};
 		43E1B41EFB712D2C93C58693 /* AR */ = {
 			isa = PBXGroup;
 			children = (
@@ -187,14 +180,6 @@
 			name = Audio;
 			sourceTree = "<group>";
 		};
-		581DD769141CEFEEE02CFE28 /* SolarLenz */ = {
-			isa = PBXGroup;
-			children = (
-				1380991C03701E8BE97219C0 /* Resources */,
-			);
-			name = SolarLenz;
-			sourceTree = "<group>";
-		};
 		63840F40290EF56200A6659A = {
 			isa = PBXGroup;
 			children = (
@@ -202,7 +187,6 @@
 				63840F5C290EF56500A6659A /* 2D SolarSystemTests */,
 				63840F66290EF56500A6659A /* 2D SolarSystemUITests */,
 				63840F4A290EF56200A6659A /* Products */,
-				581DD769141CEFEEE02CFE28 /* SolarLenz */,
 			);
 			sourceTree = "<group>";
 		};
@@ -220,10 +204,6 @@
 			isa = PBXGroup;
 			children = (
 				73A9ACC4293C513700AE9A00 /* -D-SolarSystem-Info.plist */,
-				735F5EB22922BB890044F892 /* Persistance */,
-				735F5EAE2922A4B00044F892 /* Views */,
-				735F5EAC2922A48A0044F892 /* ViewModel */,
-				735F5EAF2922A4D60044F892 /* Models */,
 				63840F50290EF56400A6659A /* Assets.xcassets */,
 				73BEB01E29AAAF3E00C46CBA /* a1.png */,
 				63840F52290EF56400A6659A /* Preview Content */,
@@ -261,21 +241,16 @@
 			path = "2D SolarSystemUITests";
 			sourceTree = "<group>";
 		};
-		7308F7F8292BCFAE00B3C8E0 /* Background */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Background;
-			sourceTree = "<group>";
-		};
 		73133B612FF361A3007E6CDD /* SolarLenz */ = {
 			isa = PBXGroup;
 			children = (
+				735F5EB02922A4E60044F892 /* App */,
 				73133B622FF361A7007E6CDD /* Domain */,
 				73133B632FF361A8007E6CDD /* Data */,
 				73133B642FF361A9007E6CDD /* DesignSystem */,
 				73133B652FF361A9007E6CDD /* State */,
 				73133B662FF361AB007E6CDD /* Features */,
+				735F5EAF2922A4D60044F892 /* Resources */,
 			);
 			path = SolarLenz;
 			sourceTree = "<group>";
@@ -325,7 +300,6 @@
 			children = (
 				73133B672FF361AF007E6CDD /* SolarSystem */,
 				73133B682FF361B1007E6CDD /* PlanetDetail */,
-				73133B692FF361B2007E6CDD /* Onboarding */,
 				73133B6A2FF361B3007E6CDD /* Shared */,
 				73133B8D2FF36259007E6CDD /* SolarLenzRootView.swift */,
 				43E1B41EFB712D2C93C58693 /* AR */,
@@ -350,142 +324,55 @@
 			isa = PBXGroup;
 			children = (
 				73133B892FF3624E007E6CDD /* PlanetDetailScreen.swift */,
-				E0203AD2A6DAC0A266950E2E /* PlanetModel3DView.swift */,
+				E0203AD2A6DAC0A266950E2E /* PlanetScene3DView.swift */,
 			);
 			path = PlanetDetail;
-			sourceTree = "<group>";
-		};
-		73133B692FF361B2007E6CDD /* Onboarding */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Onboarding;
 			sourceTree = "<group>";
 		};
 		73133B6A2FF361B3007E6CDD /* Shared */ = {
 			isa = PBXGroup;
 			children = (
 				73133B7D2FF3620B007E6CDD /* SeededGenerator.swift */,
-				73133B7F2FF3620E007E6CDD /* PlaceholderViews.swift */,
+				73133B7F2FF3620E007E6CDD /* ErrorStateView.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
 		};
-		7313DE682932CA1C00EDF286 /* PlanetInformation */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = PlanetInformation;
-			sourceTree = "<group>";
-		};
-		7313DE732935359700EDF286 /* IO_Models */ = {
+		7313DE732935359700EDF286 /* Audio */ = {
 			isa = PBXGroup;
 			children = (
 				7313DE7C2935564100EDF286 /* solar-audio.m4a */,
 			);
-			path = IO_Models;
+			path = Audio;
 			sourceTree = "<group>";
 		};
-		7313DE74293535A800EDF286 /* PlanetModel */ = {
+		735F5EAF2922A4D60044F892 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				735F5EB22922BB890044F892 /* Data */,
+				7313DE732935359700EDF286 /* Audio */,
+				735F5EC029255D520044F892 /* Models3D */,
 			);
-			path = PlanetModel;
+			path = Resources;
 			sourceTree = "<group>";
 		};
-		7313DE8629356F6000EDF286 /* AgeInfo */ = {
+		735F5EB02922A4E60044F892 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				63840F4C290EF56200A6659A /* SolarLenzApp.swift */,
 			);
-			path = AgeInfo;
+			path = App;
 			sourceTree = "<group>";
 		};
-		7313DE8F2935BF0C00EDF286 /* Commands */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Commands;
-			sourceTree = "<group>";
-		};
-		7313DE902935BF1400EDF286 /* Main AR */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = "Main AR";
-			sourceTree = "<group>";
-		};
-		7313DE952935C89000EDF286 /* Commands */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Commands;
-			sourceTree = "<group>";
-		};
-		735F5EAC2922A48A0044F892 /* ViewModel */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = ViewModel;
-			sourceTree = "<group>";
-		};
-		735F5EAE2922A4B00044F892 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				735F5EB02922A4E60044F892 /* TopLevel */,
-				735F5EBB292558210044F892 /* 3D-Views */,
-				735F5EB12922A4F70044F892 /* 2D-Views */,
-				7313DE682932CA1C00EDF286 /* PlanetInformation */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
-		735F5EAF2922A4D60044F892 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				7313DE74293535A800EDF286 /* PlanetModel */,
-				7313DE732935359700EDF286 /* IO_Models */,
-				735F5EC029255D520044F892 /* 3D-Models */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		735F5EB02922A4E60044F892 /* TopLevel */ = {
-			isa = PBXGroup;
-			children = (
-				63840F4C290EF56200A6659A /* _D_SolarSystemApp.swift */,
-				7313DE8629356F6000EDF286 /* AgeInfo */,
-			);
-			path = TopLevel;
-			sourceTree = "<group>";
-		};
-		735F5EB12922A4F70044F892 /* 2D-Views */ = {
-			isa = PBXGroup;
-			children = (
-				735F5ECF292590C50044F892 /* 2D-All */,
-				735F5ED0292591090044F892 /* 2D-Single */,
-				7308F7F8292BCFAE00B3C8E0 /* Background */,
-			);
-			path = "2D-Views";
-			sourceTree = "<group>";
-		};
-		735F5EB22922BB890044F892 /* Persistance */ = {
+		735F5EB22922BB890044F892 /* Data */ = {
 			isa = PBXGroup;
 			children = (
 				735F5EB32922BBA90044F892 /* planetary_data.json */,
 			);
-			path = Persistance;
+			path = Data;
 			sourceTree = "<group>";
 		};
-		735F5EBB292558210044F892 /* 3D-Views */ = {
-			isa = PBXGroup;
-			children = (
-				7313DE902935BF1400EDF286 /* Main AR */,
-				7313DE8F2935BF0C00EDF286 /* Commands */,
-			);
-			path = "3D-Views";
-			sourceTree = "<group>";
-		};
-		735F5EC029255D520044F892 /* 3D-Models */ = {
+		735F5EC029255D520044F892 /* Models3D */ = {
 			isa = PBXGroup;
 			children = (
 				73D6400C2926B5BA00D38129 /* 3d-sun.usdz */,
@@ -499,22 +386,7 @@
 				735F5EDB2925DC070044F892 /* 3d-uranus.usdz */,
 				735F5EDA2925DC070044F892 /* 3d-neptune.usdz */,
 			);
-			path = "3D-Models";
-			sourceTree = "<group>";
-		};
-		735F5ECF292590C50044F892 /* 2D-All */ = {
-			isa = PBXGroup;
-			children = (
-				7313DE952935C89000EDF286 /* Commands */,
-			);
-			path = "2D-All";
-			sourceTree = "<group>";
-		};
-		735F5ED0292591090044F892 /* 2D-Single */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = "2D-Single";
+			path = Models3D;
 			sourceTree = "<group>";
 		};
 		C5D4D37ED22FCB0DD44285D4 /* Voice */ = {
@@ -674,9 +546,9 @@
 				73133B822FF36218007E6CDD /* StarFieldView.swift in Sources */,
 				73133B8E2FF36259007E6CDD /* SolarLenzRootView.swift in Sources */,
 				73133B6C2FF361C8007E6CDD /* Planet.swift in Sources */,
-				63840F4D290EF56200A6659A /* _D_SolarSystemApp.swift in Sources */,
+				63840F4D290EF56200A6659A /* SolarLenzApp.swift in Sources */,
 				73133B722FF361E1007E6CDD /* PlanetRepository.swift in Sources */,
-				73133B802FF3620E007E6CDD /* PlaceholderViews.swift in Sources */,
+				73133B802FF3620E007E6CDD /* ErrorStateView.swift in Sources */,
 				73133B6E2FF361CD007E6CDD /* AgeBracket.swift in Sources */,
 				73133B782FF361F0007E6CDD /* Planet+Display.swift in Sources */,
 				73133B862FF3622D007E6CDD /* OrbitCanvasView.swift in Sources */,
@@ -697,7 +569,7 @@
 				0A4AB68F4E394BB55A75C921 /* VoiceCommand.swift in Sources */,
 				A6CC1FFC24F52E306B23C2C1 /* VoiceControlStore.swift in Sources */,
 				694767C6DF14E6258989242A /* AmbientAudioStore.swift in Sources */,
-				64CBE15365606A2688173329 /* PlanetModel3DView.swift in Sources */,
+				64CBE15365606A2688173329 /* PlanetScene3DView.swift in Sources */,
 				92061CFB1B757BE7370F4FE0 /* PlanetFacts.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

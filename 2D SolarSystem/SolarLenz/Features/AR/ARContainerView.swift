@@ -2,11 +2,11 @@
 //  ARContainerView.swift
 //  SolarLenz
 //
-//  RealityKit AR. A big solar system fixed ~1.2 m in front of the user: log-spaced so the
-//  inner planets aren't smushed, real elliptical orbits with the Sun at a focus, each body
-//  spinning on its true axial tilt. Continuous, bright orbit rings. Tapping (or prev/next)
-//  focuses a planet — it flies to just in front of you and rotates for inspection while the
-//  rest of the system keeps orbiting realistically behind it.
+//  RealityKit AR. A big solar system fixed in front of the user: log-spaced so the inner
+//  planets aren't smushed, real elliptical orbits with the Sun at a focus, each body spinning
+//  on its true axial tilt. Tapping a planet switches into tracking mode: that planet stays in
+//  front of the camera at its live orbital position while the rest of the system keeps moving
+//  around it.
 //
 
 import SwiftUI
@@ -43,7 +43,7 @@ struct ARContainerView: UIViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, ARSessionDelegate {
-        private struct Spin { var tilt: simd_quatf; var axis: SIMD3<Float>; var rate: Float }
+        private struct Spin { var axis: SIMD3<Float>; var rate: Float }
 
         private let planets: [Planet]
         private let orbiting: [Planet]
@@ -63,22 +63,26 @@ struct ARContainerView: UIViewRepresentable {
         private var hasPlaced = false
         private var didBuild = false
         private var attachTime = Date()
+        private var homePosition: SIMD3<Float>?
 
         // Layout, in metres.
-        private let sunDiameter: Float = 0.14
-        private let minOrbit: Float = 0.22
-        private let maxOrbit: Float = 0.90
-        private let placementDistance: Float = 1.2
+        private let sunDiameter: Float = 0.24
+        private let minOrbit: Float = 0.26
+        private let maxOrbit: Float = 1.12
+        private let placementDistance: Float = 1.35
         private let placementTimeout: TimeInterval = 3.0
-        private let focusDistance: Float = 0.5
-        private let focusDiameter: Float = 0.22
-        private let secondsPerReferenceOrbit: TimeInterval = 60
-        private let speedCompression: Double = 0.4
-        private let ringSegments = 64
+        private let focusDistance: Float = 0.72
+        private let focusDiameter: Float = 0.28
+        private let secondsPerReferenceOrbit: TimeInterval = 180
+        private let speedCompression: Double = 0.48
+        private let visualInclinationMultiplier = 2.4
+        private let ringSegments = 128
 
         private let referencePeriodDays: Double
-        private let minLogA: Double
-        private let maxLogA: Double
+        private let minSemiMajorAxis: Double
+        private let maxSemiMajorAxis: Double
+        private let minPhysicalRadiusKm: Double
+        private let maxPhysicalRadiusKm: Double
 
         init(planets: [Planet], store: ARExperienceStore, onTapPlanet: @escaping (Int) -> Void) {
             self.planets = planets
@@ -87,8 +91,11 @@ struct ARContainerView: UIViewRepresentable {
             self.onTapPlanet = onTapPlanet
             self.referencePeriodDays = orbiting.map(\.siderealOrbitPeriodDays).max() ?? 1
             let axes = orbiting.map { max($0.semiMajorAxis10e6Km, 0.001) }
-            self.minLogA = axes.map(log).min() ?? 0
-            self.maxLogA = axes.map(log).max() ?? 1
+            self.minSemiMajorAxis = axes.min() ?? 1
+            self.maxSemiMajorAxis = axes.max() ?? 1
+            let radii = orbiting.map(\.volumetricMeanRadiusKm).filter { $0 > 0 }
+            self.minPhysicalRadiusKm = radii.min() ?? 1
+            self.maxPhysicalRadiusKm = radii.max() ?? 1
         }
 
         func attach(to arView: ARView) {
@@ -135,6 +142,7 @@ struct ARContainerView: UIViewRepresentable {
             let anchor = AnchorEntity(world: m)
             arView.scene.addAnchor(anchor)
             systemAnchor = anchor
+            homePosition = center
             hasPlaced = true
 
             if !didBuild {
@@ -176,14 +184,25 @@ struct ARContainerView: UIViewRepresentable {
                                     materials: [SimpleMaterial(color: UIColor(planet.displayColor), isMetallic: false)])
             }
 
-            // Real axial tilt: obliquity to orbit, spinning around that tilted pole. Spin rate
-            // scales with the (inverse) length of day, so Jupiter whirls and Venus barely moves.
-            let obliquity = Float((planet.obliquityToOrbitDeg) * .pi / 180)
+            // Real axial tilt and sidereal rotation, visually compressed so no body blurs or
+            // freezes. High-obliquity planets read as retrograde.
+            let obliquityDegrees = planet.obliquityToOrbitDeg
+            let obliquity = Float(radians(obliquityDegrees))
             let tilt = simd_quatf(angle: obliquity, axis: SIMD3<Float>(0, 0, 1))
             let axis = simd_normalize(tilt.act(SIMD3<Float>(0, 1, 0)))
-            let day = max(planet.lengthOfDayHrs, 1)
-            let rate = planet.isStar ? 0.12 : Float(min(max(24.0 / day, 0.05), 1.2))
-            spins[planet.id] = Spin(tilt: tilt, axis: axis, rate: rate)
+            let rotationHours = abs(planet.siderealRotationPeriodHrs ?? planet.lengthOfDayHrs)
+            let isRetrograde = obliquityDegrees > 90
+            let rate = planet.isStar
+                ? 0.10
+                : Float(OrbitMath.compressedRotationRate(
+                    rotationPeriodHours: rotationHours,
+                    secondsPerEarthDay: 10,
+                    speedCompression: 0.45,
+                    minimumRate: 0.04,
+                    maximumRate: 1.2,
+                    retrograde: isRetrograde
+                ))
+            spins[planet.id] = Spin(axis: axis, rate: rate)
             model.orientation = tilt
 
             let container = Entity()
@@ -201,40 +220,67 @@ struct ARContainerView: UIViewRepresentable {
         }
 
         private func diameter(for planet: Planet) -> Float {
-            planet.isStar ? sunDiameter : 0.05 + Float(planet.scale) * 0.09
+            guard !planet.isStar else { return sunDiameter }
+            return Float(OrbitMath.compressedDiameter(
+                physicalRadius: planet.volumetricMeanRadiusKm,
+                minPhysicalRadius: minPhysicalRadiusKm,
+                maxPhysicalRadius: maxPhysicalRadiusKm,
+                minDiameter: 0.038,
+                maxDiameter: 0.18
+            ))
         }
 
         // MARK: Orbit geometry (log spacing + real ellipse with Sun at a focus)
 
         private func semiMajor(for planet: Planet) -> Float {
-            guard maxLogA > minLogA else { return minOrbit }
-            let t = (log(max(planet.semiMajorAxis10e6Km, 0.001)) - minLogA) / (maxLogA - minLogA)
-            return minOrbit + (maxOrbit - minOrbit) * Float(t)
+            Float(OrbitMath.logarithmicOrbitRadius(
+                semiMajorAxis: planet.semiMajorAxis10e6Km,
+                minSemiMajorAxis: minSemiMajorAxis,
+                maxSemiMajorAxis: maxSemiMajorAxis,
+                minRadius: Double(minOrbit),
+                maxRadius: Double(maxOrbit)
+            ))
         }
 
-        /// Position on the planet's elliptical orbit in the anchor's X–Z plane, Sun at a focus.
+        /// Position on the planet's Keplerian orbit, Sun at a focus, with real inclination.
         private func orbitPosition(for planet: Planet, at time: TimeInterval) -> SIMD3<Float> {
             let a = semiMajor(for: planet)
-            let e = Float(min(max(planet.orbitEccentricity, 0), 0.6))
-            let c = a * e                                   // focus offset
-            let b = a * (1 - e * e).squareRoot()            // semi-minor
-            let theta = OrbitMath.angle(elapsed: time,
-                                        periodDays: planet.siderealOrbitPeriodDays,
-                                        referencePeriodDays: referencePeriodDays,
-                                        secondsPerReferenceOrbit: secondsPerReferenceOrbit,
-                                        phase: Double(planet.id) * 0.7,
-                                        speedCompression: speedCompression)
-            return SIMD3<Float>(c + a * cos(Float(theta)), 0, b * sin(Float(theta)))
+            let meanAnomaly = OrbitMath.meanAnomaly(
+                elapsed: time,
+                periodDays: planet.siderealOrbitPeriodDays,
+                referencePeriodDays: referencePeriodDays,
+                secondsPerReferenceOrbit: secondsPerReferenceOrbit,
+                phase: Double(planet.id) * 0.7,
+                speedCompression: speedCompression
+            )
+            let position = OrbitMath.keplerianPosition(
+                semiMajorAxis: Double(a),
+                eccentricity: planet.orbitEccentricity,
+                meanAnomaly: meanAnomaly,
+                inclinationRadians: visualInclination(for: planet),
+                longitudeOfAscendingNode: longitudeOfAscendingNode(for: planet),
+                argumentOfPerihelion: argumentOfPerihelion(for: planet)
+            )
+            return SIMD3<Float>(Float(position.x), Float(position.y), Float(position.z))
         }
 
         private func makeOrbitRing(for planet: Planet) -> Entity {
             let ring = Entity()
-            let a = semiMajor(for: planet)
-            let e = Float(min(max(planet.orbitEccentricity, 0), 0.6))
-            let c = a * e, b = a * (1 - e * e).squareRoot()
+            let semiMajorAxis = Double(semiMajor(for: planet))
+            let inclination = visualInclination(for: planet)
+            let ascendingNode = longitudeOfAscendingNode(for: planet)
+            let perihelion = argumentOfPerihelion(for: planet)
             let pts: [SIMD3<Float>] = (0...ringSegments).map { i in
-                let th = Float(i) / Float(ringSegments) * 2 * .pi
-                return SIMD3<Float>(c + a * cos(th), 0, b * sin(th))
+                let anomaly = Double(i) / Double(ringSegments) * 2 * Double.pi
+                let position = OrbitMath.keplerianPosition(
+                    semiMajorAxis: semiMajorAxis,
+                    eccentricity: planet.orbitEccentricity,
+                    meanAnomaly: anomaly,
+                    inclinationRadians: inclination,
+                    longitudeOfAscendingNode: ascendingNode,
+                    argumentOfPerihelion: perihelion
+                )
+                return SIMD3<Float>(Float(position.x), Float(position.y), Float(position.z))
             }
             var mat = UnlitMaterial(color: UIColor(planet.displayColor).withAlphaComponent(0.55))
             mat.blending = .transparent(opacity: .init(floatLiteral: 0.55))
@@ -249,6 +295,23 @@ struct ARContainerView: UIViewRepresentable {
                 ring.addChild(seg)
             }
             return ring
+        }
+
+        private func radians(_ degrees: Double) -> Double {
+            degrees * Double.pi / 180
+        }
+
+        private func visualInclination(for planet: Planet) -> Double {
+            let degrees = min(abs(planet.orbitInclinationDeg ?? 0) * visualInclinationMultiplier, 24)
+            return radians(degrees)
+        }
+
+        private func longitudeOfAscendingNode(for planet: Planet) -> Double {
+            Double(planet.id) * 0.43
+        }
+
+        private func argumentOfPerihelion(for planet: Planet) -> Double {
+            Double(planet.id) * 0.71
         }
 
         private func makeLabel(for planet: Planet) -> Entity {
@@ -272,7 +335,7 @@ struct ARContainerView: UIViewRepresentable {
             guard hasPlaced, let anchor = systemAnchor else { return }
             elapsed += deltaTime
 
-            let cameraFocus = focusWorldPosition()
+            updateAnchorTracking(anchor: anchor)
 
             for planet in planets {
                 guard let container = containers[planet.id] else { continue }
@@ -282,28 +345,45 @@ struct ARContainerView: UIViewRepresentable {
                     model.orientation = simd_mul(simd_quatf(angle: spin.rate * Float(deltaTime), axis: spin.axis), model.orientation)
                 }
 
-                if planet.id == focusedID, let target = cameraFocus {
-                    // Focus mode: fly the planet to just in front of the camera and hold it there,
-                    // large, while everything else keeps orbiting behind it.
-                    let scale = focusDiameter / max(targetDiameter[planet.id] ?? focusDiameter, 0.0001)
-                    let current = container.position(relativeTo: nil)
-                    let next = simd_mix(current, target, SIMD3<Float>(repeating: 0.16))
-                    container.setPosition(next, relativeTo: nil)
-                    container.scale = simd_mix(container.scale, SIMD3<Float>(repeating: scale), SIMD3<Float>(repeating: 0.16))
+                let localPosition: SIMD3<Float> = planet.isStar ? .zero : orbitPosition(for: planet, at: elapsed)
+                container.position = localPosition
+
+                let targetScale: Float
+                if planet.id == focusedID {
+                    targetScale = focusDiameter / max(targetDiameter[planet.id] ?? focusDiameter, 0.0001)
                 } else {
-                    if container.scale.x != 1 {
-                        container.scale = simd_mix(container.scale, SIMD3<Float>(repeating: 1), SIMD3<Float>(repeating: 0.2))
-                    }
-                    container.position = planet.isStar ? .zero : orbitPosition(for: planet, at: elapsed)
+                    targetScale = 1
                 }
+                container.scale = simd_mix(
+                    container.scale,
+                    SIMD3<Float>(repeating: targetScale),
+                    SIMD3<Float>(repeating: 0.16)
+                )
 
                 if let label = anchor.children.first(where: { $0.name == "label-\(planet.id)" }) {
                     let d = targetDiameter[planet.id] ?? 0.05
-                    label.setPosition(container.position(relativeTo: nil) + SIMD3<Float>(0, d / 2 + 0.03, 0), relativeTo: nil)
+                    label.position = localPosition + SIMD3<Float>(0, d / 2 + 0.03, 0)
                     label.isEnabled = (planet.id != focusedID)   // the HUD names the focused one
                     faceCamera(label)
                 }
             }
+        }
+
+        private func updateAnchorTracking(anchor: AnchorEntity) {
+            guard let homePosition else { return }
+
+            let desired: SIMD3<Float>
+            if let focusedID,
+               let planet = orbiting.first(where: { $0.id == focusedID }),
+               let focusWorld = focusWorldPosition() {
+                desired = focusWorld - orbitPosition(for: planet, at: elapsed)
+            } else {
+                desired = homePosition
+            }
+
+            let current = anchor.position(relativeTo: nil)
+            let next = simd_mix(current, desired, SIMD3<Float>(repeating: 0.08))
+            anchor.setPosition(next, relativeTo: nil)
         }
 
         /// World point ~`focusDistance` m directly in front of the camera.

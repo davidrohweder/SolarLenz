@@ -3,7 +3,7 @@
 //  SolarLenz
 //
 //  A tiny deterministic RNG so generated visuals (e.g. the starfield) are stable
-//  across redraws instead of re-randomizing every frame like the original StarView did.
+//  across redraws.
 //
 
 /// A deterministic linear-congruential random number generator.

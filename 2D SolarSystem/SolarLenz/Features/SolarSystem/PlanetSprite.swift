@@ -13,8 +13,11 @@ struct PlanetSprite: View {
     let planet: Planet
     let isSelected: Bool
 
-    /// Diameter derived from the authored `scale` (roughly 14...46 pt).
-    private var diameter: CGFloat { 14 + CGFloat(planet.scale) * 30 }
+    /// Diameter derived from the authored `scale` (roughly 13...34 pt).
+    private var diameter: CGFloat { 12 + CGFloat(planet.scale.squareRoot()) * 22 }
+    private var tapDiameter: CGFloat {
+        max(planet.hasRingSystem ? diameter * 2.35 : diameter * 1.8, 48)
+    }
 
     var body: some View {
         ZStack {
@@ -53,6 +56,7 @@ struct PlanetSprite: View {
                     .frame(width: diameter + 14, height: diameter + 14)
             }
         }
+        .frame(width: tapDiameter, height: tapDiameter)
         .overlay(alignment: .top) {
             if isSelected {
                 Text(planet.displayName)
@@ -66,14 +70,18 @@ struct PlanetSprite: View {
             }
         }
         .animation(Theme.Motion.interactive, value: isSelected)
-        // Keep a comfortable tap target even for the smallest bodies.
-        .contentShape(Circle().size(width: max(diameter, 40), height: max(diameter, 40)))
+        .contentShape(Circle())
     }
 }
 
 @available(iOS 18, *)
 struct SunView: View {
-    private let coreDiameter: CGFloat = 52
+    let isSelected: Bool
+    private let coreDiameter: CGFloat = 44
+
+    init(isSelected: Bool = false) {
+        self.isSelected = isSelected
+    }
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
@@ -86,17 +94,17 @@ struct SunView: View {
                     .fill(
                         RadialGradient(
                             colors: [.orange.opacity(0.55), .orange.opacity(0.12), .clear],
-                            center: .center, startRadius: 2, endRadius: 95
+                            center: .center, startRadius: 2, endRadius: 68
                         )
                     )
-                    .frame(width: 200, height: 200)
+                    .frame(width: 142, height: 142)
                     .scaleEffect(pulse)
-                    .blur(radius: 6)
+                    .blur(radius: 5)
                     .blendMode(.plusLighter)
 
                 // Slowly rotating rays.
                 rays(time: t)
-                    .frame(width: 200, height: 200)
+                    .frame(width: 142, height: 142)
                     .blendMode(.plusLighter)
 
                 // Bright core.
@@ -109,10 +117,16 @@ struct SunView: View {
                     )
                     .frame(width: coreDiameter * pulse, height: coreDiameter * pulse)
                     .shadow(color: .orange.opacity(0.9), radius: 26)
+
+                if isSelected {
+                    Circle()
+                        .strokeBorder(.white.opacity(0.9), lineWidth: 1.5)
+                        .frame(width: coreDiameter + 18, height: coreDiameter + 18)
+                }
             }
         }
-        .frame(width: 200, height: 200)
-        .accessibilityHidden(true)
+        .frame(width: 142, height: 142)
+        .contentShape(Circle())
     }
 
     private func rays(time t: TimeInterval) -> some View {

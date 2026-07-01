@@ -2,7 +2,7 @@
 //  SolarSystemScreen.swift
 //  SolarLenz
 //
-//  The main 2D map: title, animated orbits, and a floating Liquid Glass control bar.
+//  The main 2D map: the animated system first, with compact floating controls.
 //
 
 import SwiftUI
@@ -14,18 +14,27 @@ struct SolarSystemScreen: View {
     @Environment(VoiceControlStore.self) private var voice
 
     var body: some View {
-        @Bindable var router = router
-
-        VStack(spacing: 0) {
-            header
+        ZStack {
             OrbitCanvasView { planet in
                 withAnimation(Theme.Motion.interactive) { model.send(.select(planet)) }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            if voice.isListening { listeningIndicator }
-            controlBar
+
+            VStack(spacing: 0) {
+                topBar
+                Spacer()
+                if voice.isListening { listeningIndicator }
+                controlBar
+            }
         }
-        .sheet(isPresented: $router.showSettings) { SettingsSheet() }
+        .sheet(isPresented: settingsBinding) { SettingsSheet() }
+    }
+
+    private var settingsBinding: Binding<Bool> {
+        Binding(
+            get: { router.showSettings },
+            set: { router.send(.presentSettings($0)) }
+        )
     }
 
     private var listeningIndicator: some View {
@@ -40,37 +49,45 @@ struct SolarSystemScreen: View {
             .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
-    private var header: some View {
-        VStack(spacing: 2) {
-            Text("SolarLenz").font(Theme.Typography.display)
-            Text("Tap a planet to explore")
-                .font(Theme.Typography.caption)
-                .foregroundStyle(.secondary)
+    private var topBar: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("SolarLenz")
+                    .font(Theme.Typography.title)
+                if let planet = model.selectedPlanet {
+                    Text(planet.displayName)
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(.secondary)
+                        .contentTransition(.opacity)
+                }
+            }
+            Spacer()
+            iconButton(systemImage: "questionmark.circle", label: "Voice commands") {
+                router.send(.presentCommandGuide(true))
+            }
         }
+        .padding(.horizontal, Theme.Spacing.m)
+        .padding(.vertical, Theme.Spacing.s)
         .foregroundStyle(.white)
-        .padding(.top, Theme.Spacing.s)
     }
 
     private var controlBar: some View {
         HStack(spacing: Theme.Spacing.m) {
             iconButton(systemImage: "arkit", label: "AR") { router.send(.enterAR) }
 
-            if let planet = model.selectedPlanet {
-                Button { router.send(.showDetail) } label: {
-                    Label("Explore \(planet.displayName)", systemImage: "sparkles")
-                        .font(.headline)
-                        .padding(.horizontal, Theme.Spacing.l)
-                        .frame(height: 44)
-                }
-                .glassPill()
-                .transition(.scale.combined(with: .opacity))
+            iconButton(systemImage: "sparkles", label: model.selectedPlanet.map { "Explore \($0.displayName)" } ?? "Explore selected planet") {
+                router.send(.showDetail)
             }
+            .disabled(model.selectedPlanet == nil)
+            .opacity(model.selectedPlanet == nil ? 0.45 : 1)
 
             micButton
 
             iconButton(systemImage: "gearshape", label: "Settings") { router.send(.presentSettings(true)) }
         }
         .foregroundStyle(.white)
+        .padding(.horizontal, Theme.Spacing.m)
+        .padding(.vertical, Theme.Spacing.s)
         .padding(.bottom, Theme.Spacing.l)
         .animation(Theme.Motion.interactive, value: model.selectedPlanetID)
         .animation(Theme.Motion.interactive, value: voice.isListening)
@@ -100,7 +117,7 @@ struct SolarSystemScreen: View {
 }
 
 /// A minimal, self-contained settings sheet. Reads the same `@AppStorage` keys the rest
-/// of the app uses, so preferences stay consistent without the old god-object.
+/// of the app uses, so preferences stay consistent without coupling settings to a feature store.
 @available(iOS 18, *)
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss

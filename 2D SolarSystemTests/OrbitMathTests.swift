@@ -8,6 +8,7 @@
 import Testing
 import Foundation
 import CoreGraphics
+import simd
 @testable import _D_SolarSystem
 
 @Suite("OrbitMath")
@@ -81,5 +82,76 @@ struct OrbitMathTests {
         #expect(abs(peri.x - (ellipse.focalOffset + r)) < 0.0001)
         #expect(abs(apo.x - (ellipse.focalOffset - r)) < 0.0001)
         #expect(abs(peri.y) < 0.0001)
+    }
+
+    @Test("Kepler solver satisfies M = E - e sin(E)")
+    func keplerSolverResidual() {
+        let meanAnomaly = 1.3
+        let eccentricity = 0.42
+        let eccentricAnomaly = OrbitMath.eccentricAnomaly(meanAnomaly: meanAnomaly, eccentricity: eccentricity)
+        let residual = eccentricAnomaly - eccentricity * sin(eccentricAnomaly) - meanAnomaly
+        #expect(abs(residual) < 0.000001)
+    }
+
+    @Test("Keplerian positions hit perihelion and aphelion distances")
+    func keplerianPerihelionAphelion() {
+        let semiMajorAxis = 10.0
+        let eccentricity = 0.2
+        let perihelion = OrbitMath.keplerianPosition(
+            semiMajorAxis: semiMajorAxis,
+            eccentricity: eccentricity,
+            meanAnomaly: 0
+        )
+        let aphelion = OrbitMath.keplerianPosition(
+            semiMajorAxis: semiMajorAxis,
+            eccentricity: eccentricity,
+            meanAnomaly: .pi
+        )
+
+        #expect(abs(simd_length(perihelion) - semiMajorAxis * (1 - eccentricity)) < 0.0001)
+        #expect(abs(simd_length(aphelion) - semiMajorAxis * (1 + eccentricity)) < 0.0001)
+    }
+
+    @Test("Inclined Keplerian orbit leaves the flat orbital plane")
+    func keplerianInclination() {
+        let position = OrbitMath.keplerianPosition(
+            semiMajorAxis: 1,
+            eccentricity: 0,
+            meanAnomaly: .pi / 2,
+            inclinationRadians: .pi / 2
+        )
+
+        #expect(abs(position.y - 1) < 0.0001)
+        #expect(abs(position.z) < 0.0001)
+    }
+
+    @Test("Compressed physical diameter preserves radius ordering")
+    func compressedDiameterOrdering() {
+        let mercury = OrbitMath.compressedDiameter(
+            physicalRadius: 2_439.7,
+            minPhysicalRadius: 2_439.7,
+            maxPhysicalRadius: 69_911,
+            minDiameter: 0.04,
+            maxDiameter: 0.14
+        )
+        let earth = OrbitMath.compressedDiameter(
+            physicalRadius: 6_371,
+            minPhysicalRadius: 2_439.7,
+            maxPhysicalRadius: 69_911,
+            minDiameter: 0.04,
+            maxDiameter: 0.14
+        )
+        let jupiter = OrbitMath.compressedDiameter(
+            physicalRadius: 69_911,
+            minPhysicalRadius: 2_439.7,
+            maxPhysicalRadius: 69_911,
+            minDiameter: 0.04,
+            maxDiameter: 0.14
+        )
+
+        #expect(mercury < earth)
+        #expect(earth < jupiter)
+        #expect(abs(mercury - 0.04) < 0.0001)
+        #expect(abs(jupiter - 0.14) < 0.0001)
     }
 }

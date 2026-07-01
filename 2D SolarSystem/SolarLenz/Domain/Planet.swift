@@ -2,8 +2,8 @@
 //  Planet.swift
 //  SolarLenz
 //
-//  A clean, crash-free domain model for a celestial body — now decoding the full NASA
-//  fact-sheet so the detail screen can show everything the original app did.
+//  A clean, crash-free domain model for a celestial body, decoding the full NASA fact sheet
+//  that powers the detail screen.
 //
 
 import Foundation

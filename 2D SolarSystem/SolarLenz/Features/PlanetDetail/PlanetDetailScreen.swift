@@ -13,14 +13,24 @@ struct PlanetDetailScreen: View {
     @Environment(SolarSystemModel.self) private var model
     @Environment(AppRouter.self) private var router
     @AppStorage(PreferenceKey.userAge) private var userAge = 25
+    @State private var selectedFact: FactRow?
+    @State private var showingAllData = false
 
     var body: some View {
         Group {
             if let planet = model.selectedPlanet {
                 content(for: planet)
             } else {
-                // Never crash on a missing selection — the original code force-unwrapped here.
                 ErrorStateView(message: "No planet is selected.") { router.send(.showSystem) }
+            }
+        }
+        .sheet(item: $selectedFact) { row in
+            FactInfoSheet(row: row)
+                .presentationDetents([.height(260), .medium])
+        }
+        .sheet(isPresented: $showingAllData) {
+            if let planet = model.selectedPlanet {
+                PlanetDataBrowserSheet(planet: planet)
             }
         }
     }
@@ -38,7 +48,7 @@ struct PlanetDetailScreen: View {
 
     private func hero(for planet: Planet, height: CGFloat) -> some View {
         ZStack {
-            PlanetModel3DView(planet: planet)
+            PlanetScene3DView(planet: planet)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             VStack {
@@ -84,7 +94,7 @@ struct PlanetDetailScreen: View {
                     factSection(section)
                 }
 
-                arButton
+                actionButtons(for: planet)
             }
             .padding(Theme.Spacing.l)
             .foregroundStyle(.white)
@@ -108,6 +118,17 @@ struct PlanetDetailScreen: View {
                         Text(row.value)
                             .fontWeight(.medium)
                             .multilineTextAlignment(.trailing)
+                        if row.explanation != nil {
+                            Button { selectedFact = row } label: {
+                                Image(systemName: "info.circle")
+                                    .font(.caption)
+                                    .frame(width: 24, height: 24)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Theme.Palette.accent)
+                            .accessibilityLabel("About \(row.label)")
+                            .help(row.explanation ?? "")
+                        }
                     }
                     .font(Theme.Typography.body)
                     .padding(.vertical, Theme.Spacing.s)
@@ -123,15 +144,107 @@ struct PlanetDetailScreen: View {
         }
     }
 
-    private var arButton: some View {
-        Button { withAnimation(Theme.Motion.transition) { router.send(.enterAR) } } label: {
-            Label("View in AR", systemImage: "arkit")
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
+    private func actionButtons(for planet: Planet) -> some View {
+        HStack(spacing: Theme.Spacing.m) {
+            Button { showingAllData = true } label: {
+                Label("NASA Data", systemImage: "tablecells")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+            }
+            .glassPill()
+            .accessibilityHint("Shows the full NASA and JPL data table for this planet")
+
+            Button { withAnimation(Theme.Motion.transition) { router.send(.trackInAR(planet.id)) } } label: {
+                Label("AR", systemImage: "arkit")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+            }
+            .glassPill()
+            .accessibilityHint("Places the solar system in front of you using the camera")
         }
-        .glassPill()
         .padding(.top, Theme.Spacing.s)
-        .accessibilityHint("Places the solar system in front of you using the camera")
+    }
+}
+
+@available(iOS 18, *)
+private struct FactInfoSheet: View {
+    let row: FactRow
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: Theme.Spacing.m) {
+                LabeledContent(row.label, value: row.value)
+                    .font(Theme.Typography.body)
+
+                if let explanation = row.explanation {
+                    Text(explanation)
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let url = URL(string: PlanetFacts.sourceURL(for: row)) {
+                    Link(PlanetFacts.sourceTitle(for: row), destination: url)
+                        .font(Theme.Typography.caption)
+                }
+
+                Spacer()
+            }
+            .padding(Theme.Spacing.l)
+            .navigationTitle("About This Data")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+@available(iOS 18, *)
+private struct PlanetDataBrowserSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let planet: Planet
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(PlanetFacts.allSections(for: planet)) { section in
+                    Section(section.title) {
+                        ForEach(section.rows) { row in
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(row.label)
+                                        .foregroundStyle(.secondary)
+                                    Spacer(minLength: Theme.Spacing.m)
+                                    Text(row.value)
+                                        .fontWeight(.medium)
+                                        .multilineTextAlignment(.trailing)
+                                }
+                                if let explanation = row.explanation {
+                                    Text(explanation)
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+                }
+
+                Section("Sources") {
+                    if let url = URL(string: PlanetFacts.sourceURL) {
+                        Link(PlanetFacts.sourceTitle, destination: url)
+                    }
+                    if let url = URL(string: PlanetFacts.moonSourceURL) {
+                        Link(PlanetFacts.moonSourceTitle, destination: url)
+                    }
+                }
+            }
+            .navigationTitle("\(planet.displayName) Data")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }

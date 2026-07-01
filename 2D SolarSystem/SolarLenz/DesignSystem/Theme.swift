@@ -9,8 +9,8 @@ import SwiftUI
 
 /// Design tokens for SolarLenz.
 ///
-/// Centralizing these keeps the redesigned surfaces visually consistent and replaces the
-/// scattered magic numbers and ad-hoc colors throughout the original views.
+/// Centralizing these keeps surfaces visually consistent and avoids scattered spacing,
+/// type, color, and motion constants.
 enum Theme {
 
     enum Spacing {

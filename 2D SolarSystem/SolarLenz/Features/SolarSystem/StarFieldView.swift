@@ -2,9 +2,7 @@
 //  StarFieldView.swift
 //  SolarLenz
 //
-//  A single-Canvas starfield with subtle twinkle, layered over soft nebula clouds for
-//  depth. Replaces the original approach of rendering up to 2,500 individual `Star`
-//  SwiftUI views — a large performance win, and far less flat.
+//  A single-Canvas starfield with subtle twinkle, layered over soft nebula clouds for depth.
 //
 
 import SwiftUI

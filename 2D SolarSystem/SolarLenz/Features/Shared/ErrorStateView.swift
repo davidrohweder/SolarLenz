@@ -1,14 +1,13 @@
 //
-//  PlaceholderViews.swift
+//  ErrorStateView.swift
 //  SolarLenz
 //
-//  Small shared states — currently the data-load error view.
+//  Shared recoverable error state.
 //
 
 import SwiftUI
 
-/// Shown when the bundled data fails to load. Offers a retry instead of crashing —
-/// the original code force-unwrapped its way into a crash here.
+/// Shown when the bundled data fails to load. Offers a retry instead of crashing.
 @available(iOS 18, *)
 struct ErrorStateView: View {
     let message: String

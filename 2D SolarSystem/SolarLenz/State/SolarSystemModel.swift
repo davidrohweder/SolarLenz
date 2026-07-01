@@ -2,8 +2,7 @@
 //  SolarSystemModel.swift
 //  SolarLenz
 //
-//  Observable store for the solar-system domain. One focused responsibility:
-//  load the data and own the selection. Replaces the data half of the old god-object.
+//  Observable MVI store for the solar-system domain.
 //
 
 import Foundation
@@ -11,9 +10,8 @@ import Observation
 
 /// Owns the loaded planet data and the current selection.
 ///
-/// Deliberately small — navigation, audio, and voice live in their own stores — which is
-/// the opposite of the original `PlanetManager` that owned everything. State changes flow
-/// through `send(_:)` (MVI); the stored properties are read-only to callers.
+/// Deliberately small: navigation, audio, and voice live in their own stores. State changes
+/// flow through `send(_:)`; stored properties are read-only to callers.
 @available(iOS 18, *)
 @MainActor
 @Observable
@@ -76,5 +74,10 @@ final class SolarSystemModel: IntentStore {
     /// Largest semi-major axis — used to normalize on-screen orbit radii.
     var maxSemiMajorAxis: Double {
         orbitingBodies.map(\.semiMajorAxis10e6Km).max() ?? 1
+    }
+
+    /// Smallest semi-major axis — used for logarithmic orbit spacing in compact views.
+    var minSemiMajorAxis: Double {
+        orbitingBodies.map(\.semiMajorAxis10e6Km).filter { $0 > 0 }.min() ?? 1
     }
 }

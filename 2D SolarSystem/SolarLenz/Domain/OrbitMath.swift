@@ -7,14 +7,14 @@
 
 import CoreGraphics
 import Foundation
+import simd
 
 /// Pure helpers for laying bodies out on their orbits.
 ///
-/// Replaces the original app's magic numbers (`radius = id * 23`, `orbitTime = id + 10`)
-/// and the mutable `static var curr_angle` global with values derived from real orbital
-/// data. Every function is deterministic, so the layout is unit-testable and the same
-/// inputs always produce the same frame.
+/// Uses values derived from real orbital data. Every function is deterministic, so the layout
+/// is unit-testable and the same inputs always produce the same frame.
 enum OrbitMath {
+    private static let twoPi = 2 * Double.pi
 
     /// Visual radius, in points, of a body's orbit.
     ///
@@ -48,12 +48,156 @@ enum OrbitMath {
         phase: Double,
         speedCompression: Double = 1
     ) -> Double {
+        meanAnomaly(
+            elapsed: elapsed,
+            periodDays: periodDays,
+            referencePeriodDays: referencePeriodDays,
+            secondsPerReferenceOrbit: secondsPerReferenceOrbit,
+            phase: phase,
+            speedCompression: speedCompression
+        )
+    }
+
+    /// Mean anomaly, in radians, with the app's visual time compression applied.
+    ///
+    /// In a circular orbit this is the visual angle. In an eccentric orbit this is the input to
+    /// Kepler's equation, which makes bodies speed up near perihelion and slow near aphelion.
+    static func meanAnomaly(
+        elapsed: TimeInterval,
+        periodDays: Double,
+        referencePeriodDays: Double,
+        secondsPerReferenceOrbit: TimeInterval,
+        phase: Double,
+        speedCompression: Double = 1
+    ) -> Double {
         guard periodDays > 0, referencePeriodDays > 0, secondsPerReferenceOrbit > 0 else {
             return phase
         }
         let speedRatio = pow(referencePeriodDays / periodDays, speedCompression)
         let orbitsPerSecond = speedRatio / secondsPerReferenceOrbit
-        return phase + elapsed * orbitsPerSecond * 2 * .pi
+        return phase + elapsed * orbitsPerSecond * twoPi
+    }
+
+    /// Solves Kepler's equation (`M = E − e·sin(E)`) for eccentric anomaly `E`.
+    static func eccentricAnomaly(meanAnomaly: Double, eccentricity: Double) -> Double {
+        let e = clampedEccentricity(eccentricity)
+        guard e > 0 else { return normalizedAngle(meanAnomaly) }
+
+        let m = normalizedAngle(meanAnomaly)
+        var estimate = e < 0.8 || abs(m) < 1e-9 ? m : (m < 0 ? -Double.pi : Double.pi)
+
+        for _ in 0..<8 {
+            let residual = estimate - e * sin(estimate) - m
+            let slope = 1 - e * cos(estimate)
+            guard abs(slope) > 1e-9 else { break }
+            estimate -= residual / slope
+        }
+
+        return estimate
+    }
+
+    /// True anomaly, in radians, derived from the eccentric anomaly.
+    static func trueAnomaly(meanAnomaly: Double, eccentricity: Double) -> Double {
+        let e = clampedEccentricity(eccentricity)
+        let eccentric = eccentricAnomaly(meanAnomaly: meanAnomaly, eccentricity: e)
+        return 2 * atan2(
+            sqrt(1 + e) * sin(eccentric / 2),
+            sqrt(1 - e) * cos(eccentric / 2)
+        )
+    }
+
+    /// A 3D Keplerian position with the Sun at a focus and the orbital plane inclined in space.
+    ///
+    /// The app data does not include longitude of ascending node or argument of perihelion, so
+    /// callers can supply deterministic visual offsets without changing the physical ellipse.
+    static func keplerianPosition(
+        semiMajorAxis: Double,
+        eccentricity: Double,
+        meanAnomaly: Double,
+        inclinationRadians: Double = 0,
+        longitudeOfAscendingNode: Double = 0,
+        argumentOfPerihelion: Double = 0
+    ) -> SIMD3<Double> {
+        guard semiMajorAxis > 0 else { return .zero }
+
+        let e = clampedEccentricity(eccentricity)
+        let eccentric = eccentricAnomaly(meanAnomaly: meanAnomaly, eccentricity: e)
+        let semiMinorAxis = semiMajorAxis * sqrt(1 - e * e)
+
+        let orbitalX = semiMajorAxis * (cos(eccentric) - e)
+        let orbitalZ = semiMinorAxis * sin(eccentric)
+        let perihelionRotated = rotateXZ(
+            SIMD3<Double>(orbitalX, 0, orbitalZ),
+            by: argumentOfPerihelion
+        )
+
+        let sinInclination = sin(inclinationRadians)
+        let cosInclination = cos(inclinationRadians)
+        let inclined = SIMD3<Double>(
+            perihelionRotated.x,
+            perihelionRotated.z * sinInclination,
+            perihelionRotated.z * cosInclination
+        )
+
+        return rotateXZ(inclined, by: longitudeOfAscendingNode)
+    }
+
+    /// Logarithmic orbit spacing for compact AR/2D views that still preserve distance ordering.
+    static func logarithmicOrbitRadius(
+        semiMajorAxis: Double,
+        minSemiMajorAxis: Double,
+        maxSemiMajorAxis: Double,
+        minRadius: Double,
+        maxRadius: Double
+    ) -> Double {
+        guard semiMajorAxis > 0,
+              minSemiMajorAxis > 0,
+              maxSemiMajorAxis > minSemiMajorAxis,
+              maxRadius > minRadius else {
+            return minRadius
+        }
+
+        let normalized = (log(semiMajorAxis) - log(minSemiMajorAxis)) / (log(maxSemiMajorAxis) - log(minSemiMajorAxis))
+        return minRadius + (maxRadius - minRadius) * min(max(normalized, 0), 1)
+    }
+
+    /// Compresses real radii into tappable visual diameters while preserving physical ordering.
+    ///
+    /// Uses a power curve against the largest radius rather than a pure logarithm. That keeps
+    /// Jupiter and Saturn visibly dominant while still preventing the terrestrial planets from
+    /// becoming too small to tap.
+    static func compressedDiameter(
+        physicalRadius: Double,
+        minPhysicalRadius: Double,
+        maxPhysicalRadius: Double,
+        minDiameter: Double,
+        maxDiameter: Double
+    ) -> Double {
+        guard physicalRadius > 0,
+              minPhysicalRadius > 0,
+              maxPhysicalRadius > minPhysicalRadius,
+              maxDiameter > minDiameter else {
+            return minDiameter
+        }
+
+        let scaled = maxDiameter * pow(physicalRadius / maxPhysicalRadius, 0.45)
+        return min(max(scaled, minDiameter), maxDiameter)
+    }
+
+    /// Visual angular spin rate, in radians per second, from a sidereal rotation period.
+    static func compressedRotationRate(
+        rotationPeriodHours: Double,
+        secondsPerEarthDay: TimeInterval,
+        speedCompression: Double,
+        minimumRate: Double,
+        maximumRate: Double,
+        retrograde: Bool = false
+    ) -> Double {
+        guard rotationPeriodHours > 0, secondsPerEarthDay > 0 else { return 0 }
+        let earthDayHours = 23.9345
+        let speedRatio = pow(earthDayHours / rotationPeriodHours, speedCompression)
+        let unsigned = min(max(twoPi * speedRatio / secondsPerEarthDay, minimumRate), maximumRate)
+        return retrograde ? -unsigned : unsigned
     }
 
     /// Point on an elliptical orbit for a given angle, with the Sun at a **focus**.
@@ -89,5 +233,29 @@ enum OrbitMath {
         let focalOffset = radius * CGFloat(e)                        // c = a·e
         let semiMinor = radius * CGFloat((1 - e * e).squareRoot())   // b = a·√(1−e²)
         return (focalOffset, CGSize(width: radius * 2, height: semiMinor * yScale * 2))
+    }
+
+    private static func clampedEccentricity(_ eccentricity: Double) -> Double {
+        min(max(eccentricity, 0), 0.95)
+    }
+
+    private static func normalizedAngle(_ angle: Double) -> Double {
+        var normalized = angle.truncatingRemainder(dividingBy: twoPi)
+        if normalized > .pi {
+            normalized -= twoPi
+        } else if normalized < -.pi {
+            normalized += twoPi
+        }
+        return normalized
+    }
+
+    private static func rotateXZ(_ point: SIMD3<Double>, by angle: Double) -> SIMD3<Double> {
+        let cosine = cos(angle)
+        let sine = sin(angle)
+        return SIMD3<Double>(
+            point.x * cosine - point.z * sine,
+            point.y,
+            point.x * sine + point.z * cosine
+        )
     }
 }

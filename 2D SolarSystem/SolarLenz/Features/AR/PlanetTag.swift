@@ -9,9 +9,8 @@ import RealityKit
 
 /// Marks a RealityKit entity as a planet, carrying the domain `Planet.id`.
 ///
-/// Tap hit-testing reads this component instead of parsing node names — the original
-/// SceneKit code depended on a fragile `"<name>_Cube_001"` string convention that did not
-/// even match the actual USDZ prim names. With a component, the models are used verbatim.
+/// Tap hit-testing reads this component instead of parsing model node names, so the USDZ
+/// assets can be used verbatim.
 struct PlanetTag: Component {
     let planetID: Int
 }
