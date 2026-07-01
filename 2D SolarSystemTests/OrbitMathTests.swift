@@ -29,6 +29,59 @@ struct OrbitMathTests {
         #expect(OrbitMath.orbitRadius(semiMajorAxis: -5, maxSemiMajorAxis: 100, minRadius: 12, maxRadius: 100) == 12)
     }
 
+    @Test("Compressed orbit radius keeps real distance ordering and uneven gaps")
+    func compressedOrbitRadiusOrdering() {
+        let minAxis = 57.9
+        let maxAxis = 4_495.1
+        let mercury = OrbitMath.compressedOrbitRadius(
+            semiMajorAxis: 57.9,
+            minSemiMajorAxis: minAxis,
+            maxSemiMajorAxis: maxAxis,
+            minRadius: 0.32,
+            maxRadius: 0.88,
+            exponent: 0.55
+        )
+        let earth = OrbitMath.compressedOrbitRadius(
+            semiMajorAxis: 149.6,
+            minSemiMajorAxis: minAxis,
+            maxSemiMajorAxis: maxAxis,
+            minRadius: 0.32,
+            maxRadius: 0.88,
+            exponent: 0.55
+        )
+        let mars = OrbitMath.compressedOrbitRadius(
+            semiMajorAxis: 227.9,
+            minSemiMajorAxis: minAxis,
+            maxSemiMajorAxis: maxAxis,
+            minRadius: 0.32,
+            maxRadius: 0.88,
+            exponent: 0.55
+        )
+        let jupiter = OrbitMath.compressedOrbitRadius(
+            semiMajorAxis: 778.6,
+            minSemiMajorAxis: minAxis,
+            maxSemiMajorAxis: maxAxis,
+            minRadius: 0.32,
+            maxRadius: 0.88,
+            exponent: 0.55
+        )
+        let neptune = OrbitMath.compressedOrbitRadius(
+            semiMajorAxis: maxAxis,
+            minSemiMajorAxis: minAxis,
+            maxSemiMajorAxis: maxAxis,
+            minRadius: 0.32,
+            maxRadius: 0.88,
+            exponent: 0.55
+        )
+
+        #expect(abs(mercury - 0.32) < 0.0001)
+        #expect(abs(neptune - 0.88) < 0.0001)
+        #expect(mercury < earth)
+        #expect(earth < mars)
+        #expect(mars < jupiter)
+        #expect((jupiter - mars) > (mars - earth))
+    }
+
     @Test("Shorter-period bodies sweep a larger angle in the same elapsed time")
     func angularVelocityOrdering() {
         let t: TimeInterval = 10
@@ -110,6 +163,21 @@ struct OrbitMathTests {
 
         #expect(abs(simd_length(perihelion) - semiMajorAxis * (1 - eccentricity)) < 0.0001)
         #expect(abs(simd_length(aphelion) - semiMajorAxis * (1 + eccentricity)) < 0.0001)
+    }
+
+    @Test("Keplerian eccentric anomaly samples the actual ellipse")
+    func keplerianEccentricAnomalySamplesEllipse() {
+        let semiMajorAxis = 10.0
+        let eccentricity = 0.2
+        let position = OrbitMath.keplerianPosition(
+            semiMajorAxis: semiMajorAxis,
+            eccentricity: eccentricity,
+            eccentricAnomaly: .pi / 2
+        )
+        let expectedSemiMinor = semiMajorAxis * sqrt(1 - eccentricity * eccentricity)
+
+        #expect(abs(position.x + semiMajorAxis * eccentricity) < 0.0001)
+        #expect(abs(position.z - expectedSemiMinor) < 0.0001)
     }
 
     @Test("Inclined Keplerian orbit leaves the flat orbital plane")

@@ -2,7 +2,7 @@
 //  ARContainerView.swift
 //  SolarLenz
 //
-//  RealityKit AR. A readable solar system fixed in front of the user: log-spaced so the inner
+//  RealityKit AR. A readable solar system fixed in front of the user: compressed so the inner
 //  planets aren't smushed, real elliptical orbits with the Sun at a focus, each body spinning
 //  on its true axial tilt. Tapping a body pulls it close without moving the system.
 //
@@ -64,17 +64,18 @@ struct ARContainerView: UIViewRepresentable {
         private var systemRoot: Entity?
 
         // Layout, in metres.
-        private let sunDiameter: Float = 0.40
-        private let minOrbit: Float = 0.18
-        private let maxOrbit: Float = 0.54
-        private let placementDistance: Float = 0.78
+        private let sunDiameter: Float = 0.38
+        private let minOrbit: Float = 0.32
+        private let maxOrbit: Float = 0.88
+        private let placementDistance: Float = 1.15
         private let placementTimeout: TimeInterval = 3.0
-        private let focusDistance: Float = 0.42
-        private let focusedDiameter: Float = 0.40
+        private let focusDistance: Float = 0.52
+        private let focusedDiameter: Float = 0.38
         private let secondsPerReferenceOrbit: TimeInterval = 180
         private let speedCompression: Double = 0.48
-        private let visualInclinationMultiplier = 2.4
-        private let ringSegments = 128
+        private let orbitCompressionExponent = 0.55
+        private let visualInclinationMultiplier = 1.6
+        private let ringSegments = 192
 
         private let referencePeriodDays: Double
         private let minSemiMajorAxis: Double
@@ -136,14 +137,13 @@ struct ARContainerView: UIViewRepresentable {
                 guard let self else { return }
                 let root = Entity()
                 await self.buildSystem(on: root)
-                guard let arView = self.arView, let center = self.pointInFrontOfCamera(distance: self.placementDistance) else {
+                guard let arView = self.arView,
+                      let transform = self.placementTransformInFrontOfCamera(distance: self.placementDistance) else {
                     self.isBuilding = false
                     return
                 }
 
-                var m = matrix_identity_float4x4
-                m.columns.3 = SIMD4<Float>(center.x, center.y, center.z, 1)
-                let anchor = AnchorEntity(world: m)
+                let anchor = AnchorEntity(world: transform)
                 anchor.addChild(root)
                 arView.scene.addAnchor(anchor)
                 self.systemRoot = root
@@ -228,15 +228,16 @@ struct ARContainerView: UIViewRepresentable {
             ))
         }
 
-        // MARK: Orbit geometry (log spacing + real ellipse with Sun at a focus)
+        // MARK: Orbit geometry (compressed spacing + real ellipse with Sun at a focus)
 
         private func semiMajor(for planet: Planet) -> Float {
-            Float(OrbitMath.logarithmicOrbitRadius(
+            Float(OrbitMath.compressedOrbitRadius(
                 semiMajorAxis: planet.semiMajorAxis10e6Km,
                 minSemiMajorAxis: minSemiMajorAxis,
                 maxSemiMajorAxis: maxSemiMajorAxis,
                 minRadius: Double(minOrbit),
-                maxRadius: Double(maxOrbit)
+                maxRadius: Double(maxOrbit),
+                exponent: orbitCompressionExponent
             ))
         }
 
@@ -253,7 +254,7 @@ struct ARContainerView: UIViewRepresentable {
             )
             let position = OrbitMath.keplerianPosition(
                 semiMajorAxis: Double(a),
-                eccentricity: planet.orbitEccentricity,
+                eccentricity: orbitEccentricity(for: planet),
                 meanAnomaly: meanAnomaly,
                 inclinationRadians: visualInclination(for: planet),
                 longitudeOfAscendingNode: longitudeOfAscendingNode(for: planet),
@@ -269,11 +270,11 @@ struct ARContainerView: UIViewRepresentable {
             let ascendingNode = longitudeOfAscendingNode(for: planet)
             let perihelion = argumentOfPerihelion(for: planet)
             let pts: [SIMD3<Float>] = (0...ringSegments).map { i in
-                let anomaly = Double(i) / Double(ringSegments) * 2 * Double.pi
+                let eccentricAnomaly = Double(i) / Double(ringSegments) * 2 * Double.pi
                 let position = OrbitMath.keplerianPosition(
                     semiMajorAxis: semiMajorAxis,
-                    eccentricity: planet.orbitEccentricity,
-                    meanAnomaly: anomaly,
+                    eccentricity: orbitEccentricity(for: planet),
+                    eccentricAnomaly: eccentricAnomaly,
                     inclinationRadians: inclination,
                     longitudeOfAscendingNode: ascendingNode,
                     argumentOfPerihelion: perihelion
@@ -302,6 +303,16 @@ struct ARContainerView: UIViewRepresentable {
         private func visualInclination(for planet: Planet) -> Double {
             let degrees = min(abs(planet.orbitInclinationDeg ?? 0) * visualInclinationMultiplier, 24)
             return radians(degrees)
+        }
+
+        private func orbitEccentricity(for planet: Planet) -> Double {
+            if let perihelion = planet.perihelion10e6Km,
+               let aphelion = planet.aphelion10e6Km,
+               perihelion > 0,
+               aphelion > perihelion {
+                return (aphelion - perihelion) / (aphelion + perihelion)
+            }
+            return planet.orbitEccentricity
         }
 
         private func longitudeOfAscendingNode(for planet: Planet) -> Double {
@@ -384,6 +395,30 @@ struct ARContainerView: UIViewRepresentable {
             var fwd = -SIMD3<Float>(t.columns.2.x, t.columns.2.y, t.columns.2.z)
             let l = simd_length(fwd); fwd = l > 0 ? fwd / l : SIMD3<Float>(0, 0, -1)
             return cam + fwd * distance
+        }
+
+        private func placementTransformInFrontOfCamera(distance: Float) -> simd_float4x4? {
+            guard let arView else { return nil }
+            let t = arView.cameraTransform.matrix
+            let cam = SIMD3<Float>(t.columns.3.x, t.columns.3.y, t.columns.3.z)
+            var forward = -SIMD3<Float>(t.columns.2.x, 0, t.columns.2.z)
+            let forwardLength = simd_length(forward)
+            if forwardLength <= 0.0001 {
+                forward = SIMD3<Float>(0, 0, -1)
+            } else {
+                forward /= forwardLength
+            }
+
+            let up = SIMD3<Float>(0, 1, 0)
+            let right = simd_normalize(simd_cross(forward, up))
+            let center = cam + forward * distance
+
+            return simd_float4x4(columns: (
+                SIMD4<Float>(right.x, right.y, right.z, 0),
+                SIMD4<Float>(up.x, up.y, up.z, 0),
+                SIMD4<Float>(-forward.x, -forward.y, -forward.z, 0),
+                SIMD4<Float>(center.x, center.y, center.z, 1)
+            ))
         }
 
         private func faceCamera(_ entity: Entity) {

@@ -122,10 +122,36 @@ enum OrbitMath {
 
         let e = clampedEccentricity(eccentricity)
         let eccentric = eccentricAnomaly(meanAnomaly: meanAnomaly, eccentricity: e)
+        return keplerianPosition(
+            semiMajorAxis: semiMajorAxis,
+            eccentricity: e,
+            eccentricAnomaly: eccentric,
+            inclinationRadians: inclinationRadians,
+            longitudeOfAscendingNode: longitudeOfAscendingNode,
+            argumentOfPerihelion: argumentOfPerihelion
+        )
+    }
+
+    /// A 3D Keplerian ellipse sample from eccentric anomaly `E`.
+    ///
+    /// Orbit rings use this direct form so their geometry is a clean ellipse instead of a
+    /// time-sampled trail. Moving bodies should use the mean-anomaly overload above so their
+    /// visual speed still accelerates near perihelion and slows near aphelion.
+    static func keplerianPosition(
+        semiMajorAxis: Double,
+        eccentricity: Double,
+        eccentricAnomaly: Double,
+        inclinationRadians: Double = 0,
+        longitudeOfAscendingNode: Double = 0,
+        argumentOfPerihelion: Double = 0
+    ) -> SIMD3<Double> {
+        guard semiMajorAxis > 0 else { return .zero }
+
+        let e = clampedEccentricity(eccentricity)
         let semiMinorAxis = semiMajorAxis * sqrt(1 - e * e)
 
-        let orbitalX = semiMajorAxis * (cos(eccentric) - e)
-        let orbitalZ = semiMinorAxis * sin(eccentric)
+        let orbitalX = semiMajorAxis * (cos(eccentricAnomaly) - e)
+        let orbitalZ = semiMinorAxis * sin(eccentricAnomaly)
         let perihelionRotated = rotateXZ(
             SIMD3<Double>(orbitalX, 0, orbitalZ),
             by: argumentOfPerihelion
@@ -159,6 +185,32 @@ enum OrbitMath {
 
         let normalized = (log(semiMajorAxis) - log(minSemiMajorAxis)) / (log(maxSemiMajorAxis) - log(minSemiMajorAxis))
         return minRadius + (maxRadius - minRadius) * min(max(normalized, 0), 1)
+    }
+
+    /// Power-compressed orbit spacing for compact AR views.
+    ///
+    /// This keeps Mercury at `minRadius` and Neptune at `maxRadius`, while preserving the
+    /// non-uniform real spacing better than pure logarithmic spacing. Exponents below `1`
+    /// make inner planets separable without pretending the outer planets are evenly spaced.
+    static func compressedOrbitRadius(
+        semiMajorAxis: Double,
+        minSemiMajorAxis: Double,
+        maxSemiMajorAxis: Double,
+        minRadius: Double,
+        maxRadius: Double,
+        exponent: Double
+    ) -> Double {
+        guard semiMajorAxis > 0,
+              minSemiMajorAxis > 0,
+              maxSemiMajorAxis > minSemiMajorAxis,
+              maxRadius > minRadius,
+              exponent > 0 else {
+            return minRadius
+        }
+
+        let normalized = (semiMajorAxis - minSemiMajorAxis) / (maxSemiMajorAxis - minSemiMajorAxis)
+        let compressed = pow(min(max(normalized, 0), 1), exponent)
+        return minRadius + (maxRadius - minRadius) * compressed
     }
 
     /// Compresses real radii into tappable visual diameters while preserving physical ordering.
