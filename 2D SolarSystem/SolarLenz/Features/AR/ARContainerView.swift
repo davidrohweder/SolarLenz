@@ -4,9 +4,8 @@
 //
 //  RealityKit AR. A big solar system fixed in front of the user: log-spaced so the inner
 //  planets aren't smushed, real elliptical orbits with the Sun at a focus, each body spinning
-//  on its true axial tilt. Tapping a planet switches into tracking mode: that planet stays in
-//  front of the camera at its live orbital position while the rest of the system keeps moving
-//  around it.
+//  on its true axial tilt. Inspect mode pulls a planet close without moving the system; follow
+//  mode keeps that planet close while the rest of the system moves around its live orbit.
 //
 
 import SwiftUI
@@ -18,6 +17,7 @@ import Combine
 struct ARContainerView: UIViewRepresentable {
     let planets: [Planet]
     let focusedID: Int?
+    let focusMode: ARExperienceStore.FocusMode
     let store: ARExperienceStore
     let onTapPlanet: (Int) -> Void
 
@@ -32,7 +32,7 @@ struct ARContainerView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: ARView, context: Context) {
-        context.coordinator.setFocus(focusedID)
+        context.coordinator.setFocus(focusedID, mode: focusMode)
     }
 
     static func dismantleUIView(_ uiView: ARView, coordinator: Coordinator) {
@@ -60,6 +60,7 @@ struct ARContainerView: UIViewRepresentable {
         private var updateSubscription: Cancellable?
         private var elapsed: TimeInterval = 0
         private var focusedID: Int?
+        private var focusMode: ARExperienceStore.FocusMode = .inspect
         private var hasPlaced = false
         private var didBuild = false
         private var attachTime = Date()
@@ -71,8 +72,9 @@ struct ARContainerView: UIViewRepresentable {
         private let maxOrbit: Float = 1.12
         private let placementDistance: Float = 1.35
         private let placementTimeout: TimeInterval = 3.0
-        private let focusDistance: Float = 0.72
-        private let focusDiameter: Float = 0.28
+        private let inspectDistance: Float = 0.48
+        private let followDistance: Float = 0.52
+        private let focusedDiameter: Float = 0.34
         private let secondsPerReferenceOrbit: TimeInterval = 180
         private let speedCompression: Double = 0.48
         private let visualInclinationMultiplier = 2.4
@@ -122,7 +124,10 @@ struct ARContainerView: UIViewRepresentable {
             arView?.session.pause()
         }
 
-        func setFocus(_ id: Int?) { focusedID = id }
+        func setFocus(_ id: Int?, mode: ARExperienceStore.FocusMode) {
+            focusedID = id
+            focusMode = id == nil ? .inspect : mode
+        }
 
         // MARK: Placement
 
@@ -346,11 +351,19 @@ struct ARContainerView: UIViewRepresentable {
                 }
 
                 let localPosition: SIMD3<Float> = planet.isStar ? .zero : orbitPosition(for: planet, at: elapsed)
+                let isFocused = planet.id == focusedID
+                let isInspecting = isFocused && focusMode == .inspect
                 container.position = localPosition
 
+                if isInspecting, let focusWorld = focusWorldPosition(distance: inspectDistance) {
+                    let current = container.position(relativeTo: nil)
+                    let next = simd_mix(current, focusWorld, SIMD3<Float>(repeating: 0.22))
+                    container.setPosition(next, relativeTo: nil)
+                }
+
                 let targetScale: Float
-                if planet.id == focusedID {
-                    targetScale = focusDiameter / max(targetDiameter[planet.id] ?? focusDiameter, 0.0001)
+                if isFocused {
+                    targetScale = focusedDiameter / max(targetDiameter[planet.id] ?? focusedDiameter, 0.0001)
                 } else {
                     targetScale = 1
                 }
@@ -363,7 +376,7 @@ struct ARContainerView: UIViewRepresentable {
                 if let label = anchor.children.first(where: { $0.name == "label-\(planet.id)" }) {
                     let d = targetDiameter[planet.id] ?? 0.05
                     label.position = localPosition + SIMD3<Float>(0, d / 2 + 0.03, 0)
-                    label.isEnabled = (planet.id != focusedID)   // the HUD names the focused one
+                    label.isEnabled = !isFocused   // the HUD names the focused one
                     faceCamera(label)
                 }
             }
@@ -373,27 +386,29 @@ struct ARContainerView: UIViewRepresentable {
             guard let homePosition else { return }
 
             let desired: SIMD3<Float>
-            if let focusedID,
+            if focusMode == .track,
+               let focusedID,
                let planet = orbiting.first(where: { $0.id == focusedID }),
-               let focusWorld = focusWorldPosition() {
+               let focusWorld = focusWorldPosition(distance: followDistance) {
                 desired = focusWorld - orbitPosition(for: planet, at: elapsed)
             } else {
                 desired = homePosition
             }
 
             let current = anchor.position(relativeTo: nil)
-            let next = simd_mix(current, desired, SIMD3<Float>(repeating: 0.08))
+            let easing: Float = focusMode == .track ? 0.10 : 0.06
+            let next = simd_mix(current, desired, SIMD3<Float>(repeating: easing))
             anchor.setPosition(next, relativeTo: nil)
         }
 
-        /// World point ~`focusDistance` m directly in front of the camera.
-        private func focusWorldPosition() -> SIMD3<Float>? {
+        /// World point directly in front of the camera at the requested distance.
+        private func focusWorldPosition(distance: Float) -> SIMD3<Float>? {
             guard let arView else { return nil }
             let t = arView.cameraTransform.matrix
             let cam = SIMD3<Float>(t.columns.3.x, t.columns.3.y, t.columns.3.z)
             var fwd = -SIMD3<Float>(t.columns.2.x, t.columns.2.y, t.columns.2.z)
             let l = simd_length(fwd); fwd = l > 0 ? fwd / l : SIMD3<Float>(0, 0, -1)
-            return cam + fwd * focusDistance
+            return cam + fwd * distance
         }
 
         private func faceCamera(_ entity: Entity) {

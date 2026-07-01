@@ -155,7 +155,7 @@ struct PlanetDetailScreen: View {
             .glassPill()
             .accessibilityHint("Shows the full NASA and JPL data table for this planet")
 
-            Button { withAnimation(Theme.Motion.transition) { router.send(.trackInAR(planet.id)) } } label: {
+            Button { withAnimation(Theme.Motion.transition) { router.send(.inspectInAR(planet.id)) } } label: {
                 Label("AR", systemImage: "arkit")
                     .font(.headline)
                     .frame(maxWidth: .infinity)

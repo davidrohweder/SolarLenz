@@ -27,6 +27,7 @@ final class AppRouter: IntentStore {
         case showSystem
         case showDetail
         case enterAR
+        case inspectInAR(Int?)
         case trackInAR(Int?)
         case releaseARTracking
         case presentSettings(Bool)
@@ -34,6 +35,7 @@ final class AppRouter: IntentStore {
     }
 
     private(set) var mode: Mode = .solarSystem
+    private(set) var arInspectPlanetID: Int?
     private(set) var arTrackingPlanetID: Int?
 
     /// Read by the settings sheet. Views open and close it by sending `.presentSettings`.
@@ -44,9 +46,22 @@ final class AppRouter: IntentStore {
         switch intent {
         case .showSystem:              mode = .solarSystem
         case .showDetail:              mode = .planetDetail
-        case .enterAR:                 arTrackingPlanetID = nil; mode = .ar
-        case .trackInAR(let id):       arTrackingPlanetID = id; mode = .ar
-        case .releaseARTracking:       arTrackingPlanetID = nil; mode = .ar
+        case .enterAR:
+            arInspectPlanetID = nil
+            arTrackingPlanetID = nil
+            mode = .ar
+        case .inspectInAR(let id):
+            arInspectPlanetID = id
+            arTrackingPlanetID = nil
+            mode = .ar
+        case .trackInAR(let id):
+            arInspectPlanetID = nil
+            arTrackingPlanetID = id
+            mode = .ar
+        case .releaseARTracking:
+            arInspectPlanetID = nil
+            arTrackingPlanetID = nil
+            mode = .ar
         case .presentSettings(let on): showSettings = on
         case .presentCommandGuide(let on):
             showCommandGuide = on

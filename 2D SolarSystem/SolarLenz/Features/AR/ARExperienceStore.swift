@@ -3,7 +3,7 @@
 //  SolarLenz
 //
 //  Observable state for the AR experience: the placement phase, plus which planet (if any)
-//  is currently tracked in its live orbit while the rest of the system keeps moving.
+//  is currently being inspected close-up or followed in its live orbit.
 //
 
 import ARKit
@@ -20,15 +20,23 @@ final class ARExperienceStore: IntentStore {
         case exploring       // system is anchored and interactive
     }
 
+    enum FocusMode: Equatable {
+        case inspect
+        case track
+    }
+
     enum Intent: Equatable {
         case systemPlaced
-        case focus(Int?)     // track a planet by id, or nil to return to the system view
+        case inspect(Int?)   // pull a planet close while the system stays anchored
+        case track(Int?)     // follow a planet's live orbit with the system moving around it
+        case releaseFocus
         case reset
     }
 
     private(set) var phase: Phase
-    /// The tracked planet id, or nil when viewing the whole system.
+    /// The focused planet id, or nil when viewing the whole system.
     private(set) var focusedID: Int?
+    private(set) var focusMode: FocusMode = .inspect
 
     init(isSupported: Bool = ARWorldTrackingConfiguration.isSupported) {
         phase = isSupported ? .placing : .unsupported
@@ -38,8 +46,19 @@ final class ARExperienceStore: IntentStore {
         guard phase != .unsupported else { return }
         switch intent {
         case .systemPlaced: phase = .exploring
-        case .focus(let id): focusedID = id
-        case .reset:         phase = .placing; focusedID = nil
+        case .inspect(let id):
+            focusedID = id
+            focusMode = .inspect
+        case .track(let id):
+            focusedID = id
+            focusMode = id == nil ? .inspect : .track
+        case .releaseFocus:
+            focusedID = nil
+            focusMode = .inspect
+        case .reset:
+            phase = .placing
+            focusedID = nil
+            focusMode = .inspect
         }
     }
 }

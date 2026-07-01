@@ -142,8 +142,12 @@ struct SolarLenzRootView: View {
         let planet = bodies[next]
         withAnimation(Theme.Motion.interactive) {
             model.send(.select(planet))
-            if router.mode == .ar, router.arTrackingPlanetID != nil {
-                router.send(.trackInAR(planet.id))
+            if router.mode == .ar {
+                if router.arTrackingPlanetID != nil {
+                    router.send(.trackInAR(planet.id))
+                } else if router.arInspectPlanetID != nil {
+                    router.send(.inspectInAR(planet.id))
+                }
             }
         }
     }
