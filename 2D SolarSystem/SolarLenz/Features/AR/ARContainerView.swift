@@ -67,14 +67,14 @@ struct ARContainerView: UIViewRepresentable {
         private var homePosition: SIMD3<Float>?
 
         // Layout, in metres.
-        private let sunDiameter: Float = 0.24
-        private let minOrbit: Float = 0.26
-        private let maxOrbit: Float = 1.12
-        private let placementDistance: Float = 1.35
+        private let sunDiameter: Float = 0.32
+        private let minOrbit: Float = 0.20
+        private let maxOrbit: Float = 0.68
+        private let placementDistance: Float = 0.86
         private let placementTimeout: TimeInterval = 3.0
-        private let inspectDistance: Float = 0.48
-        private let followDistance: Float = 0.52
-        private let focusedDiameter: Float = 0.34
+        private let inspectDistance: Float = 0.42
+        private let followDistance: Float = 0.46
+        private let focusedDiameter: Float = 0.38
         private let secondsPerReferenceOrbit: TimeInterval = 180
         private let speedCompression: Double = 0.48
         private let visualInclinationMultiplier = 2.4
@@ -230,8 +230,8 @@ struct ARContainerView: UIViewRepresentable {
                 physicalRadius: planet.volumetricMeanRadiusKm,
                 minPhysicalRadius: minPhysicalRadiusKm,
                 maxPhysicalRadius: maxPhysicalRadiusKm,
-                minDiameter: 0.038,
-                maxDiameter: 0.18
+                minDiameter: 0.055,
+                maxDiameter: 0.24
             ))
         }
 
@@ -294,7 +294,7 @@ struct ARContainerView: UIViewRepresentable {
                 let dir = p1 - p0
                 let len = simd_length(dir)
                 guard len > 0 else { continue }
-                let seg = ModelEntity(mesh: .generateBox(width: 0.0018, height: 0.0018, depth: len), materials: [mat])
+                let seg = ModelEntity(mesh: .generateBox(width: 0.0024, height: 0.0024, depth: len), materials: [mat])
                 seg.position = (p0 + p1) / 2
                 seg.orientation = simd_quatf(from: SIMD3<Float>(0, 0, 1), to: dir / len)
                 ring.addChild(seg)
@@ -325,7 +325,7 @@ struct ARContainerView: UIViewRepresentable {
             var mat = UnlitMaterial(color: .white.withAlphaComponent(0.85))
             mat.blending = .transparent(opacity: .init(floatLiteral: 0.85))
             let text = ModelEntity(mesh: .generateText(planet.displayName, extrusionDepth: 0.001,
-                                                       font: .systemFont(ofSize: 0.03), alignment: .center),
+                                                       font: .systemFont(ofSize: 0.035), alignment: .center),
                                    materials: [mat])
             let w = text.visualBounds(relativeTo: text).extents.x
             text.position = SIMD3<Float>(-w / 2, 0, 0)
@@ -375,7 +375,7 @@ struct ARContainerView: UIViewRepresentable {
 
                 if let label = anchor.children.first(where: { $0.name == "label-\(planet.id)" }) {
                     let d = targetDiameter[planet.id] ?? 0.05
-                    label.position = localPosition + SIMD3<Float>(0, d / 2 + 0.03, 0)
+                    label.position = localPosition + SIMD3<Float>(0, d / 2 + 0.04, 0)
                     label.isEnabled = !isFocused   // the HUD names the focused one
                     faceCamera(label)
                 }
