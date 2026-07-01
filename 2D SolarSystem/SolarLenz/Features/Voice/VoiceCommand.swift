@@ -14,8 +14,8 @@ enum VoiceCommand: Equatable {
     case select(String)
     /// Focus a planet by name *and* open its detail ("tell me about Mars").
     case inspect(String)
-    /// Enter AR and track a planet, or track the current selection when nil.
-    case track(String?)
+    /// Enter AR and focus a planet close-up, or focus the current selection when nil.
+    case focusInAR(String?)
     /// Open the detail screen for the current selection.
     case openDetail
     /// Enter the AR experience.
@@ -26,8 +26,8 @@ enum VoiceCommand: Equatable {
     case nextPlanet
     /// Select the previous planet in distance order.
     case previousPlanet
-    /// Release AR tracking and show the whole system.
-    case releaseTracking
+    /// Release AR focus and show the whole system.
+    case releaseARFocus
     /// Turn ambient audio on or off.
     case setAudio(Bool)
     /// Show the voice command guide.
@@ -55,12 +55,13 @@ enum VoiceCommandRegistry {
             "previous planet",
             "back to the map",
         ]),
-        VoiceCommandGuideSection(title: "AR Tracking", examples: [
+        VoiceCommandGuideSection(title: "AR Focus", examples: [
             "open AR",
+            "focus Venus in AR",
+            "show Mars in AR",
             "track Venus",
-            "follow Mars",
-            "track current planet",
-            "release tracking",
+            "focus current planet",
+            "release focus",
             "show whole system",
         ]),
         VoiceCommandGuideSection(title: "Audio and Mic", examples: [
@@ -99,8 +100,8 @@ enum VoiceCommandRegistry {
         if containsAny(["disable audio", "turn off audio", "mute audio", "mute sound", "stop music"], in: text) {
             return .setAudio(false)
         }
-        if containsAny(["release tracking", "stop tracking", "show whole system", "whole system"], in: text) {
-            return .releaseTracking
+        if containsAny(["release focus", "release tracking", "stop tracking", "show whole system", "whole system"], in: text) {
+            return .releaseARFocus
         }
         if containsAny(["next planet", "next world", "go next"], in: text) {
             return .nextPlanet
@@ -109,18 +110,19 @@ enum VoiceCommandRegistry {
             return .previousPlanet
         }
 
-        let wantsTracking = containsAny(["track", "follow", "orbit with", "lock onto"], in: text)
+        let wantsARFocus = containsAny(["track", "follow", "orbit with", "lock onto", "focus"], in: text)
+            || containsAny(["in ar", "in augmented reality"], in: text)
         let wantsDetail = containsAny(["view", "explore", "detail", "info", "tell me", "learn", "about", "facts"], in: text)
         let wantsSelect = containsAny(["go to", "show", "select", "open", "take me to"], in: text)
 
         if let planet = planetNames.first(where: { containsPhrase($0, in: text) }) {
-            if wantsTracking { return .track(planet) }
+            if wantsARFocus { return .focusInAR(planet) }
             if wantsDetail { return .inspect(planet) }
             if wantsSelect { return .select(planet) }
             return .select(planet)
         }
-        if wantsTracking || containsAny(["track current planet", "follow current planet"], in: text) {
-            return .track(nil)
+        if wantsARFocus || containsAny(["track current planet", "follow current planet", "focus current planet"], in: text) {
+            return .focusInAR(nil)
         }
         if containsAny(["augmented reality", "ar mode", "open ar", "enter ar", "camera"], in: text) || containsPhrase("ar", in: text) {
             return .enterAR

@@ -102,11 +102,11 @@ struct SolarLenzRootView: View {
             guard let planet = findPlanet(named: name, in: model) else { return }
             model.send(.select(planet))
             withAnimation(Theme.Motion.transition) { router.send(.showDetail) }
-        case .track(let name):
+        case .focusInAR(let name):
             let planet = name.flatMap { findPlanet(named: $0, in: model) } ?? model.selectedPlanet ?? model.orbitingBodies.first
             guard let planet else { return }
             model.send(.select(planet))
-            withAnimation(Theme.Motion.transition) { router.send(.trackInAR(planet.id)) }
+            withAnimation(Theme.Motion.transition) { router.send(.focusInAR(planet.id)) }
         case .openDetail:
             guard model.selectedPlanet != nil else { return }
             withAnimation(Theme.Motion.transition) { router.send(.showDetail) }
@@ -118,8 +118,8 @@ struct SolarLenzRootView: View {
             selectRelativePlanet(1, model: model, router: router)
         case .previousPlanet:
             selectRelativePlanet(-1, model: model, router: router)
-        case .releaseTracking:
-            withAnimation(Theme.Motion.interactive) { router.send(.releaseARTracking) }
+        case .releaseARFocus:
+            withAnimation(Theme.Motion.interactive) { router.send(.releaseARFocus) }
         case .setAudio(let enabled):
             audioEnabled = enabled
             updateAudio()
@@ -143,11 +143,7 @@ struct SolarLenzRootView: View {
         withAnimation(Theme.Motion.interactive) {
             model.send(.select(planet))
             if router.mode == .ar {
-                if router.arTrackingPlanetID != nil {
-                    router.send(.trackInAR(planet.id))
-                } else if router.arInspectPlanetID != nil {
-                    router.send(.inspectInAR(planet.id))
-                }
+                router.send(.focusInAR(planet.id))
             }
         }
     }

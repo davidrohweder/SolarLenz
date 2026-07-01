@@ -43,11 +43,13 @@ struct VoiceCommandTests {
         #expect(VoiceCommand.parse("take me back to the map", planetNames: planets) == .backToMap)
     }
 
-    @Test("Tracking commands enter AR with an optional planet")
-    func tracking() {
-        #expect(VoiceCommand.parse("track venus", planetNames: planets) == .track("venus"))
-        #expect(VoiceCommand.parse("follow current planet", planetNames: planets) == .track(nil))
-        #expect(VoiceCommand.parse("release tracking", planetNames: planets) == .releaseTracking)
+    @Test("AR focus commands enter AR with an optional planet")
+    func arFocus() {
+        #expect(VoiceCommand.parse("focus venus in ar", planetNames: planets) == .focusInAR("venus"))
+        #expect(VoiceCommand.parse("show mars in ar", planetNames: planets) == .focusInAR("mars"))
+        #expect(VoiceCommand.parse("track venus", planetNames: planets) == .focusInAR("venus"))
+        #expect(VoiceCommand.parse("focus current planet", planetNames: planets) == .focusInAR(nil))
+        #expect(VoiceCommand.parse("release focus", planetNames: planets) == .releaseARFocus)
     }
 
     @Test("Audio commands toggle ambient sound")

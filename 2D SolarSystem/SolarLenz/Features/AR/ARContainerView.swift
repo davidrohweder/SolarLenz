@@ -2,10 +2,9 @@
 //  ARContainerView.swift
 //  SolarLenz
 //
-//  RealityKit AR. A big solar system fixed in front of the user: log-spaced so the inner
+//  RealityKit AR. A readable solar system fixed in front of the user: log-spaced so the inner
 //  planets aren't smushed, real elliptical orbits with the Sun at a focus, each body spinning
-//  on its true axial tilt. Inspect mode pulls a planet close without moving the system; follow
-//  mode keeps that planet close while the rest of the system moves around its live orbit.
+//  on its true axial tilt. Tapping a body pulls it close without moving the system.
 //
 
 import SwiftUI
@@ -17,7 +16,6 @@ import Combine
 struct ARContainerView: UIViewRepresentable {
     let planets: [Planet]
     let focusedID: Int?
-    let focusMode: ARExperienceStore.FocusMode
     let store: ARExperienceStore
     let onTapPlanet: (Int) -> Void
 
@@ -32,7 +30,7 @@ struct ARContainerView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: ARView, context: Context) {
-        context.coordinator.setFocus(focusedID, mode: focusMode)
+        context.coordinator.setFocus(focusedID)
     }
 
     static func dismantleUIView(_ uiView: ARView, coordinator: Coordinator) {
@@ -60,20 +58,18 @@ struct ARContainerView: UIViewRepresentable {
         private var updateSubscription: Cancellable?
         private var elapsed: TimeInterval = 0
         private var focusedID: Int?
-        private var focusMode: ARExperienceStore.FocusMode = .inspect
         private var hasPlaced = false
-        private var didBuild = false
+        private var isBuilding = false
         private var attachTime = Date()
-        private var homePosition: SIMD3<Float>?
+        private var systemRoot: Entity?
 
         // Layout, in metres.
         private let sunDiameter: Float = 0.40
         private let minOrbit: Float = 0.18
-        private let maxOrbit: Float = 0.48
-        private let placementDistance: Float = 0.58
+        private let maxOrbit: Float = 0.54
+        private let placementDistance: Float = 0.64
         private let placementTimeout: TimeInterval = 3.0
-        private let inspectDistance: Float = 0.32
-        private let followDistance: Float = 0.36
+        private let focusDistance: Float = 0.34
         private let focusedDiameter: Float = 0.44
         private let secondsPerReferenceOrbit: TimeInterval = 180
         private let speedCompression: Double = 0.48
@@ -124,52 +120,51 @@ struct ARContainerView: UIViewRepresentable {
             arView?.session.pause()
         }
 
-        func setFocus(_ id: Int?, mode: ARExperienceStore.FocusMode) {
+        func setFocus(_ id: Int?) {
             focusedID = id
-            focusMode = id == nil ? .inspect : mode
         }
 
         // MARK: Placement
 
         private func placeSystemIfReady() {
-            guard !hasPlaced, let arView, let frame = arView.session.currentFrame else { return }
+            guard !hasPlaced, !isBuilding, let frame = arView?.session.currentFrame else { return }
             let normal: Bool = { if case .normal = frame.camera.trackingState { return true }; return false }()
             guard normal || Date().timeIntervalSince(attachTime) >= placementTimeout else { return }
 
-            let center = pointInFrontOfCamera(distance: placementDistance) ?? .zero
-
-            var m = matrix_identity_float4x4
-            m.columns.3 = SIMD4<Float>(center.x, center.y, center.z, 1)
-            let anchor = AnchorEntity(world: m)
-            arView.scene.addAnchor(anchor)
-            systemAnchor = anchor
-            homePosition = center
-            hasPlaced = true
-
-            if !didBuild {
-                didBuild = true
-                Task { [weak self] in
-                    await self?.buildSystem(on: anchor)
-                    self?.pinAnchorInFront(anchor, distance: self?.placementDistance ?? 0.58)
-                    self?.store.send(.systemPlaced)
+            isBuilding = true
+            Task { [weak self] in
+                guard let self else { return }
+                let root = Entity()
+                await self.buildSystem(on: root)
+                guard let arView = self.arView, let center = self.pointInFrontOfCamera(distance: self.placementDistance) else {
+                    self.isBuilding = false
+                    return
                 }
-            } else {
-                pinAnchorInFront(anchor, distance: placementDistance)
-                store.send(.systemPlaced)
+
+                var m = matrix_identity_float4x4
+                m.columns.3 = SIMD4<Float>(center.x, center.y, center.z, 1)
+                let anchor = AnchorEntity(world: m)
+                anchor.addChild(root)
+                arView.scene.addAnchor(anchor)
+                self.systemRoot = root
+                self.systemAnchor = anchor
+                self.hasPlaced = true
+                self.isBuilding = false
+                self.store.send(.systemPlaced)
             }
         }
 
         // MARK: Build
 
-        private func buildSystem(on anchor: AnchorEntity) async {
+        private func buildSystem(on root: Entity) async {
             for planet in planets {
                 let (container, model) = await makeBody(for: planet)
                 containers[planet.id] = container
                 models[planet.id] = model
-                anchor.addChild(container)
-                anchor.addChild(makeLabel(for: planet))
+                root.addChild(container)
+                root.addChild(makeLabel(for: planet))
                 if !planet.isStar {
-                    anchor.addChild(makeOrbitRing(for: planet))
+                    root.addChild(makeOrbitRing(for: planet))
                 }
             }
         }
@@ -338,12 +333,6 @@ struct ARContainerView: UIViewRepresentable {
             guard hasPlaced, let anchor = systemAnchor else { return }
             elapsed += deltaTime
 
-            if store.phase == .placing {
-                pinAnchorInFront(anchor, distance: placementDistance)
-            } else {
-                updateAnchorTracking(anchor: anchor)
-            }
-
             for planet in planets {
                 guard let container = containers[planet.id] else { continue }
 
@@ -354,10 +343,9 @@ struct ARContainerView: UIViewRepresentable {
 
                 let localPosition: SIMD3<Float> = planet.isStar ? .zero : orbitPosition(for: planet, at: elapsed)
                 let isFocused = planet.id == focusedID
-                let isInspecting = isFocused && focusMode == .inspect
                 container.position = localPosition
 
-                if isInspecting, let focusWorld = focusWorldPosition(distance: inspectDistance) {
+                if isFocused, let focusWorld = focusWorldPosition(distance: focusDistance) {
                     let current = container.position(relativeTo: nil)
                     let next = simd_mix(current, focusWorld, SIMD3<Float>(repeating: 0.22))
                     container.setPosition(next, relativeTo: nil)
@@ -375,45 +363,13 @@ struct ARContainerView: UIViewRepresentable {
                     SIMD3<Float>(repeating: 0.16)
                 )
 
-                if let label = anchor.children.first(where: { $0.name == "label-\(planet.id)" }) {
+                if let label = (systemRoot ?? anchor).children.first(where: { $0.name == "label-\(planet.id)" }) {
                     let d = targetDiameter[planet.id] ?? 0.05
                     label.position = localPosition + SIMD3<Float>(0, d / 2 + 0.04, 0)
                     label.isEnabled = !isFocused   // the HUD names the focused one
                     faceCamera(label)
                 }
             }
-        }
-
-        private func updateAnchorTracking(anchor: AnchorEntity) {
-            let desired: SIMD3<Float>
-            let easing: Float
-            if focusMode == .track,
-               let focusedID,
-               let planet = orbiting.first(where: { $0.id == focusedID }),
-               let focusWorld = focusWorldPosition(distance: followDistance) {
-                desired = focusWorld - orbitPosition(for: planet, at: elapsed)
-                easing = 0.14
-            } else if let cameraHome = pointInFrontOfCamera(distance: placementDistance) {
-                desired = cameraHome
-                easing = 0.20
-            } else {
-                guard let homePosition else { return }
-                desired = homePosition
-                easing = 0.12
-            }
-
-            let current = anchor.position(relativeTo: nil)
-            let next = simd_mix(current, desired, SIMD3<Float>(repeating: easing))
-            anchor.setPosition(next, relativeTo: nil)
-            if focusMode != .track {
-                homePosition = next
-            }
-        }
-
-        private func pinAnchorInFront(_ anchor: AnchorEntity, distance: Float) {
-            guard let center = pointInFrontOfCamera(distance: distance) else { return }
-            anchor.setPosition(center, relativeTo: nil)
-            homePosition = center
         }
 
         /// World point directly in front of the camera at the requested distance.

@@ -3,8 +3,7 @@
 //  SolarLenz
 //
 //  The AR experience: a big RealityKit solar system fixed in front of the user, with a
-//  compact HUD. Tap or step through planets to inspect them close-up; follow mode can then
-//  lock the close-up planet to its live orbital position.
+//  compact HUD. Tap or step through planets to inspect them close-up.
 //
 
 import SwiftUI
@@ -26,7 +25,6 @@ struct ARSolarSystemScreen: View {
             case .placing, .exploring:
                 ARContainerView(planets: model.planets,
                                 focusedID: store.focusedID,
-                                focusMode: store.focusMode,
                                 store: store) { id in
                     if let planet = model.planets.first(where: { $0.id == id }) { inspect(planet) }
                 }
@@ -36,48 +34,34 @@ struct ARSolarSystemScreen: View {
         }
         .foregroundStyle(.white)
         .onAppear(perform: syncFocusFromRouter)
-        .onChange(of: router.arInspectPlanetID) { _, _ in syncFocusFromRouter() }
-        .onChange(of: router.arTrackingPlanetID) { _, _ in syncFocusFromRouter() }
+        .onChange(of: router.arFocusedPlanetID) { _, _ in syncFocusFromRouter() }
     }
 
     // MARK: - Interaction
 
     private func inspect(_ planet: Planet) {
         withAnimation(Theme.Motion.interactive) {
-            store.send(.inspect(planet.id))
+            store.send(.focus(planet.id))
             model.send(.select(planet))
-            router.send(.inspectInAR(planet.id))
-        }
-    }
-
-    private func followOrbit(_ planet: Planet) {
-        withAnimation(Theme.Motion.interactive) {
-            store.send(.track(planet.id))
-            model.send(.select(planet))
-            router.send(.trackInAR(planet.id))
+            router.send(.focusInAR(planet.id))
         }
     }
 
     private func releaseFocus() {
         withAnimation(Theme.Motion.interactive) {
-            store.send(.releaseFocus)
-            router.send(.releaseARTracking)
+            store.send(.focus(nil))
+            router.send(.releaseARFocus)
         }
     }
 
     private func syncFocusFromRouter() {
-        if let id = router.arTrackingPlanetID {
+        if let id = router.arFocusedPlanetID {
             if let planet = model.planets.first(where: { $0.id == id }) {
                 model.send(.select(planet))
             }
-            store.send(.track(id))
-        } else if let id = router.arInspectPlanetID {
-            if let planet = model.planets.first(where: { $0.id == id }) {
-                model.send(.select(planet))
-            }
-            store.send(.inspect(id))
+            store.send(.focus(id))
         } else {
-            store.send(.releaseFocus)
+            store.send(.focus(nil))
         }
     }
 
@@ -89,11 +73,7 @@ struct ARSolarSystemScreen: View {
         } else {
             index = 0
         }
-        if store.focusMode == .track {
-            followOrbit(ordered[index])
-        } else {
-            inspect(ordered[index])
-        }
+        inspect(ordered[index])
     }
 
     // MARK: - HUD
@@ -146,25 +126,8 @@ struct ARSolarSystemScreen: View {
             }
 
             HStack(spacing: Theme.Spacing.m) {
-                if !planet.isStar {
-                    Button {
-                        if store.focusMode == .track {
-                            inspect(planet)
-                        } else {
-                            followOrbit(planet)
-                        }
-                    } label: {
-                        Label(store.focusMode == .track ? "Inspect" : "Follow Orbit",
-                              systemImage: store.focusMode == .track ? "viewfinder" : "scope")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, Theme.Spacing.m)
-                            .frame(height: 44)
-                    }
-                    .glassPill()
-                }
-
                 Button { releaseFocus() } label: {
-                    Label("Release", systemImage: "circle.hexagongrid")
+                    Label("System", systemImage: "circle.hexagongrid")
                         .font(.subheadline)
                         .padding(.horizontal, Theme.Spacing.m)
                         .frame(height: 44)
@@ -183,13 +146,11 @@ struct ARSolarSystemScreen: View {
     }
 
     private func focusCard(_ planet: Planet) -> some View {
-        let isTracking = store.focusMode == .track
-        return VStack(spacing: Theme.Spacing.s) {
+        VStack(spacing: Theme.Spacing.s) {
             VStack(spacing: 0) {
                 Text(planet.displayName)
                     .font(Theme.Typography.title)
-                Label(isTracking ? "Following orbit" : "Inspecting close up",
-                      systemImage: isTracking ? "scope" : "viewfinder")
+                Label("Inspecting close up", systemImage: "viewfinder")
                     .font(Theme.Typography.caption)
                     .foregroundStyle(.secondary)
             }
