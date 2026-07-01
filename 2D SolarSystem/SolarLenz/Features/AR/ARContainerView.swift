@@ -385,22 +385,29 @@ struct ARContainerView: UIViewRepresentable {
         }
 
         private func updateAnchorTracking(anchor: AnchorEntity) {
-            guard let homePosition else { return }
-
             let desired: SIMD3<Float>
+            let easing: Float
             if focusMode == .track,
                let focusedID,
                let planet = orbiting.first(where: { $0.id == focusedID }),
                let focusWorld = focusWorldPosition(distance: followDistance) {
                 desired = focusWorld - orbitPosition(for: planet, at: elapsed)
+                easing = 0.14
+            } else if let cameraHome = pointInFrontOfCamera(distance: placementDistance) {
+                desired = cameraHome
+                easing = 0.20
             } else {
+                guard let homePosition else { return }
                 desired = homePosition
+                easing = 0.12
             }
 
             let current = anchor.position(relativeTo: nil)
-            let easing: Float = focusMode == .track ? 0.10 : 0.06
             let next = simd_mix(current, desired, SIMD3<Float>(repeating: easing))
             anchor.setPosition(next, relativeTo: nil)
+            if focusMode != .track {
+                homePosition = next
+            }
         }
 
         private func pinAnchorInFront(_ anchor: AnchorEntity, distance: Float) {
