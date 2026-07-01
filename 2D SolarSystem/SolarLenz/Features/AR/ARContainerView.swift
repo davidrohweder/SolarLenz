@@ -67,10 +67,10 @@ struct ARContainerView: UIViewRepresentable {
         private let sunDiameter: Float = 0.40
         private let minOrbit: Float = 0.18
         private let maxOrbit: Float = 0.54
-        private let placementDistance: Float = 0.64
+        private let placementDistance: Float = 0.78
         private let placementTimeout: TimeInterval = 3.0
-        private let focusDistance: Float = 0.34
-        private let focusedDiameter: Float = 0.44
+        private let focusDistance: Float = 0.42
+        private let focusedDiameter: Float = 0.40
         private let secondsPerReferenceOrbit: TimeInterval = 180
         private let speedCompression: Double = 0.48
         private let visualInclinationMultiplier = 2.4
