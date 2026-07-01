@@ -7,23 +7,16 @@
 
 import SwiftUI
 
+/// The application entry point.
+///
+/// The deployment target is iOS 18, so there is a single, modern experience:
+/// the Observation-based `SolarLenz` app. The legacy `PlanetManager`/`ContentView`
+/// tree has been retired.
 @main
 struct _D_SolarSystemApp: App {
-    @AppStorage("Constants.Preferences.AudioEnabled") var audioEnabled : Bool = true
-    @AppStorage("Constants.Preferences.numStars") var numStars : Int = 2500
-    @StateObject var manager: PlanetManager = PlanetManager()
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .onAppear() {
-                    manager.allowAudio = audioEnabled
-                    numStars = manager.numStars
-                }
-                .onChange(of: manager.lowPower) { _ in
-                    numStars = manager.numStars
-                }
-                .preferredColorScheme(.dark)
-                .environmentObject(manager)
+            SolarLenzRootView()
         }
     }
 }
